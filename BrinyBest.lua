@@ -414,7 +414,7 @@ local pendingLoads = 0
 local currentList = {}
 local zoneAgg = {}
 local globalScoreable = 0
-local zoneOddities = 0
+
 
 -- needing 2500 of the possible points means every zone effectively needs this average
 -- (with the confirmed 2800 max that's ~89.3%; derived from data, 2700 fallback while loading)
@@ -469,10 +469,7 @@ local function render(zoneLabel, list)
   footer:SetPoint("TOPLEFT", 10, -42 - #list * ROW_HEIGHT)
   if scoreableCount > 0 then
     -- Trophy-rank fish sit at exactly 100.0, so zone max = 100 per scoreable fish
-    local oddNote = zoneOddities > 0 and ("  |cff9d9d9d· +%d oddities|r"):format(zoneOddities) or ""
-    footer:SetText(("Zone: |cffffd100%.1f|r / %d pts   Trophies: |cffff8000%d|r/%d%s"):format(total, scoreableCount * 100, trophies, scoreableCount, oddNote))
-  elseif zoneOddities > 0 then
-    footer:SetText(("Only unscored oddities here (%d) — no Anglin' points available."):format(zoneOddities))
+    footer:SetText(("Zone: |cffffd100%.1f|r / %d pts   Trophies: |cffff8000%d|r/%d"):format(total, scoreableCount * 100, trophies, scoreableCount))
   else
     footer:SetText("No Midnight fish recorded for this zone.")
   end
@@ -518,7 +515,7 @@ local function update()
   wipe(zoneAgg)
   pendingLoads = 0
   globalScoreable = 0
-  zoneOddities = 0
+
   for _, fdef in ipairs(FISH) do
     local info = parseFish(fdef)
     if info then
@@ -534,12 +531,8 @@ local function update()
           agg.count = agg.count + 1
           zoneAgg[area] = agg
         end
-        if not inZone and zones[area:lower()] then
-          if info.scoreable then
-            currentList[#currentList + 1] = info
-          else
-            zoneOddities = zoneOddities + 1
-          end
+        if not inZone and info.scoreable and zones[area:lower()] then
+          currentList[#currentList + 1] = info
           inZone = true
         end
       end
