@@ -1,0 +1,8 @@
+## Interface: 120100
+## Title: BrinyBest Test Harness
+## Notes: Dev-only simulation commands for BrinyBest (/bbtest). Not packaged for release.
+## Author: Andrew
+## Version: 1.0.0
+## Dependencies: BrinyBest
+
+BrinyBestTest.lua

@@ -186,6 +186,109 @@ local function currentZoneNames()
   return names
 end
 
+-- ---------------------------------------------------------------- progress tracking / celebration
+
+local sessionHidden = false -- X button hides until next reload; intentionally not saved
+
+local function coloredName(info)
+  return ("|cff%s%s|r"):format(CAT_HEX[info.cat] or "ffffff", info.name)
+end
+
+local toast
+local function ensureToast()
+  if toast then return toast end
+  toast = CreateFrame("Frame", "BrinyBestToast", UIParent, "BackdropTemplate")
+  toast:SetSize(440, 96)
+  toast:SetPoint("TOP", 0, -170)
+  toast:SetFrameStrata("HIGH")
+  toast:SetBackdrop({
+    bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
+    edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+    tile = true, tileSize = 16, edgeSize = 14,
+    insets = { left = 4, right = 4, top = 4, bottom = 4 },
+  })
+  toast:SetBackdropColor(0.08, 0.05, 0, 0.9)
+  toast:SetBackdropBorderColor(1, 0.5, 0, 1)
+  toast:Hide()
+
+  toast.icon = toast:CreateTexture(nil, "ARTWORK")
+  toast.icon:SetSize(56, 56)
+  toast.icon:SetPoint("LEFT", 18, 0)
+
+  toast.title = toast:CreateFontString(nil, "OVERLAY", "GameFontNormalHuge")
+  toast.title:SetPoint("TOPLEFT", 88, -16)
+  toast.title:SetText("|cffff8000Trophy Catch!|r")
+
+  toast.fish = toast:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+  toast.fish:SetPoint("TOPLEFT", 88, -48)
+
+  toast.spark = toast:CreateTexture(nil, "OVERLAY")
+  toast.spark:SetSize(80, 80)
+  toast.spark:SetPoint("CENTER", toast.icon, "CENTER")
+  toast.spark:SetTexture("Interface\\Cooldown\\star4")
+  toast.spark:SetBlendMode("ADD")
+  toast.spark:SetVertexColor(1, 0.6, 0, 0.9)
+
+  local ag = toast:CreateAnimationGroup()
+  local aIn = ag:CreateAnimation("Alpha")
+  aIn:SetFromAlpha(0); aIn:SetToAlpha(1); aIn:SetDuration(0.25); aIn:SetOrder(1)
+  local sIn = ag:CreateAnimation("Scale")
+  sIn:SetScaleFrom(1.6, 1.6); sIn:SetScaleTo(1, 1); sIn:SetDuration(0.35)
+  sIn:SetOrder(1); sIn:SetSmoothing("OUT")
+  local aOut = ag:CreateAnimation("Alpha")
+  aOut:SetFromAlpha(1); aOut:SetToAlpha(0); aOut:SetDuration(0.9)
+  aOut:SetOrder(2); aOut:SetStartDelay(3.4)
+  ag:SetScript("OnFinished", function() toast:Hide() end)
+  toast.ag = ag
+
+  local sparkAg = toast.spark:CreateAnimationGroup()
+  sparkAg:SetLooping("REPEAT")
+  local rot = sparkAg:CreateAnimation("Rotation")
+  rot:SetDegrees(360); rot:SetDuration(6)
+  toast.sparkAg = sparkAg
+  return toast
+end
+
+local function celebrate(info)
+  local t = ensureToast()
+  if info.icon then t.icon:SetTexture(info.icon) end
+  t.fish:SetText(coloredName(info) .. " |cffffd100— 100 points banked!|r")
+  t.ag:Stop()
+  t:Show()
+  t:SetAlpha(1)
+  t.ag:Play()
+  t.sparkAg:Play()
+  pcall(PlaySound, SOUNDKIT and (SOUNDKIT.UI_LEGENDARY_LOOT_TOAST or SOUNDKIT.UI_EPICLOOT_TOAST) or 44293)
+  chat(("|cffff8000TROPHY!|r %s is at max rank!"):format(coloredName(info)))
+end
+
+local function checkProgress(info)
+  local db = BrinyBestDB
+  db.scores = db.scores or {}
+  db.ranks = db.ranks or {}
+  local oldScore = db.scores[info.id]
+  local oldRank = db.ranks[info.id] or 0
+  if oldScore == nil then
+    -- first sighting (fresh install): baseline silently
+    db.scores[info.id] = info.score
+    db.ranks[info.id] = info.rankNum
+    return
+  end
+  if info.score > oldScore + 0.05 then
+    local rankNote = ""
+    if info.rank and info.rankNum > oldRank and info.rankNum < 5 then
+      rankNote = (" — reached |cff%s%s|r rank!"):format(RANK_HEX[info.rank], info.rank)
+    end
+    chat(("Improved %s: |cffffd100%.1f|r → |cffffd100%.1f|r%s"):format(
+      coloredName(info), oldScore, info.score, rankNote))
+  end
+  if info.rankNum >= 5 and oldRank < 5 then
+    celebrate(info)
+  end
+  if info.score > oldScore then db.scores[info.id] = info.score end
+  if info.rankNum > oldRank then db.ranks[info.id] = info.rankNum end
+end
+
 -- ---------------------------------------------------------------- UI
 
 local frame = CreateFrame("Frame", "BrinyBestFrame", UIParent, "BackdropTemplate")
@@ -211,6 +314,14 @@ frame:SetScript("OnDragStop", function(self)
   self:StopMovingOrSizing()
   local point, _, relPoint, x, y = self:GetPoint()
   BrinyBestDB.point = { point, relPoint, x, y }
+end)
+
+local sessionClose = CreateFrame("Button", nil, frame, "UIPanelCloseButton")
+sessionClose:SetPoint("TOPRIGHT", -1, -1)
+sessionClose:SetScript("OnClick", function()
+  sessionHidden = true
+  frame:Hide()
+  chat("hidden for this session — /bb brings it back; a /reload also restores it")
 end)
 
 local title = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
@@ -328,16 +439,13 @@ local function render(zoneLabel, list)
 end
 
 local function update()
-  if BrinyBestDB.hidden then
-    frame:Hide()
-    return
-  end
   local zones = currentZoneNames()
   wipe(currentList)
   pendingLoads = 0
   for _, fdef in ipairs(FISH) do
     local info = parseFish(fdef)
     if info then
+      checkProgress(info) -- notifications/celebrations fire even while the panel is hidden
       for _, area in ipairs(info.areas) do
         if zones[area:lower()] then
           currentList[#currentList + 1] = info
@@ -353,6 +461,10 @@ local function update()
     return a.name < b.name
   end)
 
+  if BrinyBestDB.hidden or sessionHidden then
+    frame:Hide()
+    return
+  end
   if #currentList == 0 and not frame.manualShow then
     frame:Hide()
     return
@@ -397,11 +509,10 @@ events:SetScript("OnEvent", function(_, event, arg1)
   elseif event == "SPELL_TEXT_UPDATE" then
     queueUpdate(0.5)
   elseif event == "CRITERIA_UPDATE" then
-    -- fires in bursts on each catch; re-request so descriptions refresh, then re-render
-    if frame:IsShown() then
-      requestSpellData()
-      queueUpdate(1.2)
-    end
+    -- fires in bursts on each catch; re-request so descriptions refresh, then re-check
+    -- (runs even when the panel is hidden so improvement/trophy alerts still fire)
+    requestSpellData()
+    queueUpdate(1.2)
   else -- zone changes
     queueUpdate(0.3)
   end
@@ -423,7 +534,13 @@ SLASH_BRINYBEST2 = "/brinybest"
 SlashCmdList.BRINYBEST = function(msg)
   local cmd = (msg or ""):lower():match("^%s*(%S*)")
   if cmd == "" then
-    BrinyBestDB.hidden = not BrinyBestDB.hidden
+    if sessionHidden then
+      -- X was clicked earlier this session; /bb un-hides without touching the saved toggle
+      sessionHidden = false
+      BrinyBestDB.hidden = false
+    else
+      BrinyBestDB.hidden = not BrinyBestDB.hidden
+    end
     frame.manualShow = not BrinyBestDB.hidden
     if BrinyBestDB.hidden then
       frame:Hide()
@@ -452,6 +569,8 @@ SlashCmdList.BRINYBEST = function(msg)
     requestSpellData()
     queueUpdate(0.5)
     chat("refreshing")
+  elseif cmd == "version" then
+    chat("v" .. (C_AddOns.GetAddOnMetadata("BrinyBest", "Version") or "?"))
   elseif cmd == "debug" then
     local zones = currentZoneNames()
     local zlist = {}
@@ -468,3 +587,14 @@ SlashCmdList.BRINYBEST = function(msg)
     print(HELP)
   end
 end
+
+-- ---------------------------------------------------------------- internal API
+-- Minimal surface for dev tooling (see tools/BrinyBestTest, which is not packaged).
+
+BrinyBest = {
+  fish = FISH,
+  ParseFish = parseFish,
+  Celebrate = celebrate,
+  Update = update,
+  RequestSpellData = requestSpellData,
+}
