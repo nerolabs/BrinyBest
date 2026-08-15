@@ -415,13 +415,16 @@ local currentList = {}
 local zoneAgg = {}
 local globalScoreable = 0
 
--- 2500 of the 2700 possible points means every zone effectively needs a ~92.5% average
-local TARGET_PCT = 2500 / 2700 * 100
+-- needing 2500 of the possible points means every zone effectively needs this average
+-- (with the confirmed 2800 max that's ~89.3%; derived from data, 2700 fallback while loading)
+local function targetPct(globalMax)
+  return 2500 / (globalMax or 2700) * 100
+end
 
-local function pctColor(pct)
-  if pct >= TARGET_PCT then return "1eff00" end -- on pace
-  if pct >= 80 then return "ffd100" end        -- close
-  return "ff7f3f"                              -- biggest opportunities
+local function pctColor(pct, target)
+  if pct >= target then return "1eff00" end -- on pace
+  if pct >= 80 then return "ffd100" end     -- close
+  return "ff7f3f"                           -- biggest opportunities
 end
 
 local function requestSpellData()
@@ -491,12 +494,12 @@ local function render(zoneLabel, list)
     names[#names + 1] = n
     local pct = z.max > 0 and (z.total / z.max * 100) or 0
     stats[#stats + 1] = ("%.0f / %d  |cff%s%.0f%%|r  ·  %.0f left"):format(
-      z.total, z.max, pctColor(pct), pct, z.max - z.total)
+      z.total, z.max, pctColor(pct, targetPct(globalMax)), pct, z.max - z.total)
   end
   zHeader:ClearAllPoints()
   zHeader:SetPoint("TOPLEFT", footer, "BOTTOMLEFT", 0, -8)
   if #zlist > 0 then
-    zHeader:SetText(("Improvement opportunities |cff9d9d9d(target %.1f%% avg)|r:"):format(TARGET_PCT))
+    zHeader:SetText(("Improvement opportunities |cff9d9d9d(target %.1f%% avg)|r:"):format(targetPct(globalMax)))
   else
     zHeader:SetText("")
   end

@@ -2,7 +2,7 @@
 ## Title: BrinyBest
 ## Notes: Per-zone fish scores, catch ranks, and fishing tips for The Briny Best achievement
 ## Author: Andrew
-## Version: 1.2.1
+## Version: 1.2.2
 ## SavedVariables: BrinyBestDB
 ## IconTexture: Interface\Icons\INV_Fishingpole_02
 ## X-Curse-Project-ID: 1653718
