@@ -1,7 +1,7 @@
 -- BrinyBest: shows Midnight Anglin' fish scores and catch ranks for your current zone.
 -- Data source: each journal fish is a dummy tradeskill recipe whose spell description
 -- carries "Anglin' Score: N.N points", "Catch Rank: <rank>", areas, pools, and rates.
--- /bb toggles the panel; /bb help for options.
+-- /bbf toggles the panel; /bbf help for options.
 
 local SCORE_SPELL = 1303630   -- The Briny Best of 'Em (warband score in description)
 local ACHIEVEMENT_ID = 63510  -- The Briny Best (criteria qty = integer score / 2500)
@@ -321,7 +321,7 @@ sessionClose:SetPoint("TOPRIGHT", -1, -1)
 sessionClose:SetScript("OnClick", function()
   sessionHidden = true
   frame:Hide()
-  chat("hidden for this session — /bb brings it back; a /reload also restores it")
+  chat("hidden for this session — /bbf brings it back; a /reload also restores it")
 end)
 
 local title = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
@@ -521,21 +521,21 @@ end)
 -- ---------------------------------------------------------------- slash commands
 
 local HELP = [[
-/bb              - toggle the panel
-/bb lock         - lock position (click-through drag disabled)
-/bb unlock       - unlock position
-/bb reset        - reset position
-/bb refresh      - force a data refresh
-/bb debug        - print parse state for this zone to chat
+/bbf              - toggle the panel
+/bbf lock         - lock position (click-through drag disabled)
+/bbf unlock       - unlock position
+/bbf reset        - reset position
+/bbf refresh      - force a data refresh
+/bbf debug        - print parse state for this zone to chat
 ]]
 
-SLASH_BRINYBEST1 = "/bb"
+SLASH_BRINYBEST1 = "/bbf"
 SLASH_BRINYBEST2 = "/brinybest"
 SlashCmdList.BRINYBEST = function(msg)
   local cmd = (msg or ""):lower():match("^%s*(%S*)")
   if cmd == "" then
     if sessionHidden then
-      -- X was clicked earlier this session; /bb un-hides without touching the saved toggle
+      -- X was clicked earlier this session; /bbf un-hides without touching the saved toggle
       sessionHidden = false
       BrinyBestDB.hidden = false
     else
@@ -544,7 +544,7 @@ SlashCmdList.BRINYBEST = function(msg)
     frame.manualShow = not BrinyBestDB.hidden
     if BrinyBestDB.hidden then
       frame:Hide()
-      chat("hidden — /bb to show")
+      chat("hidden — /bbf to show")
     else
       requestSpellData()
       update()

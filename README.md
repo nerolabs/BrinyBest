@@ -20,11 +20,11 @@ Every fish in the Midnight Fishing journal is a dummy tradeskill recipe whose sp
 
 | Command | Effect |
 | --- | --- |
-| `/bb` | toggle the panel |
-| `/bb lock` / `/bb unlock` | lock/unlock the panel position |
-| `/bb reset` | reset position |
-| `/bb refresh` | force a data refresh |
-| `/bb debug` | print zone/parse diagnostics |
+| `/bbf` | toggle the panel |
+| `/bbf lock` / `/bbf unlock` | lock/unlock the panel position |
+| `/bbf reset` | reset position |
+| `/bbf refresh` | force a data refresh |
+| `/bbf debug` | print zone/parse diagnostics |
 
 ## Installation
 
