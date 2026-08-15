@@ -86,6 +86,9 @@ local function parseFish(fdef)
     pools = {},
     rates = {},
   }
+  -- Cursed Oddities (and possibly others) have no score system at all; only fish whose
+  -- description carries an "Anglin' Score:" line count toward zone/global maximums
+  info.scoreable = desc:find("Anglin' Score:", 1, true) ~= nil
   info.score = tonumber(desc:match("Anglin' Score:%s*([%d%.]+)")) or 0
   local rankLine = desc:match("Catch Rank:%s*([^\n\r]+)")
   if rankLine and not rankLine:find("%[") then
@@ -263,6 +266,7 @@ local function celebrate(info)
 end
 
 local function checkProgress(info)
+  if not info.scoreable then return end
   local db = BrinyBestDB
   db.scores = db.scores or {}
   db.ranks = db.ranks or {}
@@ -373,11 +377,15 @@ local function getRow(i)
     GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
     local r, g, b = unpack(CAT_RGB[info.cat] or CAT_RGB[1])
     GameTooltip:AddLine(info.name, r, g, b)
-    GameTooltip:AddLine(("Anglin' Score: %.1f points"):format(info.score), 1, 1, 1)
-    if info.rank then
-      GameTooltip:AddLine(("Catch Rank: |cff%s%s|r (%d of 5)"):format(RANK_HEX[info.rank], info.rank, info.rankNum), 1, 1, 1)
+    if not info.scoreable then
+      GameTooltip:AddLine("No Anglin' Score — this catch has no rank system and does not count toward zone or achievement points.", 0.6, 0.6, 0.6, true)
     else
-      GameTooltip:AddLine("Catch Rank: |cff9d9d9dnot caught yet|r", 1, 1, 1)
+      GameTooltip:AddLine(("Anglin' Score: %.1f points"):format(info.score), 1, 1, 1)
+      if info.rank then
+        GameTooltip:AddLine(("Catch Rank: |cff%s%s|r (%d of 5)"):format(RANK_HEX[info.rank], info.rank, info.rankNum), 1, 1, 1)
+      else
+        GameTooltip:AddLine("Catch Rank: |cff9d9d9dnot caught yet|r", 1, 1, 1)
+      end
     end
     if info.special then
       GameTooltip:AddLine("Special: " .. info.special, 0.4, 0.85, 0.4)
@@ -405,6 +413,7 @@ end
 local pendingLoads = 0
 local currentList = {}
 local zoneAgg = {}
+local globalScoreable = 0
 
 -- 2500 of the 2700 possible points means every zone effectively needs a ~92.5% average
 local TARGET_PCT = 2500 / 2700 * 100
@@ -425,33 +434,42 @@ end
 local function render(zoneLabel, list)
   title:SetText("BrinyBest — " .. zoneLabel)
   local precise, critQty = warbandScore()
-  -- global max is 2700 (fish shared across zones only count once), so 2500 leaves little slack
-  scoreLine:SetText(("Warband Anglin' Score: |cffffd100%s|r / 2500  |cff9d9d9d(2700 max)|r"):format(precise))
+  -- global max computed from fish that actually carry an Anglin' Score line;
+  -- fall back to the community-known 2700 while descriptions are still loading
+  local globalMax = (pendingLoads == 0 and globalScoreable > 0) and (globalScoreable * 100) or 2700
+  scoreLine:SetText(("Warband Anglin' Score: |cffffd100%s|r / 2500  |cff9d9d9d(%d max)|r"):format(precise, globalMax))
 
-  local total, trophies = 0, 0
+  local total, trophies, scoreableCount = 0, 0, 0
   for i, info in ipairs(list) do
     local row = getRow(i)
     row:ClearAllPoints()
     row:SetPoint("TOPLEFT", 10, -40 - (i - 1) * ROW_HEIGHT)
     local nameCol = ("|cff%s%s|r"):format(CAT_HEX[info.cat] or "ffffff", info.name)
     row.left:SetText(nameCol .. sourceSuffix(info))
-    if info.rank then
+    if not info.scoreable then
+      row.right:SetText("|cff9d9d9dno score|r")
+    elseif info.rank then
       row.right:SetText(("%.1f  |cff%s%s|r"):format(info.score, RANK_HEX[info.rank], info.rank))
     else
       row.right:SetText(("%.1f  |cff9d9d9d—|r"):format(info.score))
     end
     row.info = info
     row:Show()
-    total = total + info.score
-    if info.rankNum >= 5 then trophies = trophies + 1 end
+    if info.scoreable then
+      scoreableCount = scoreableCount + 1
+      total = total + info.score
+      if info.rankNum >= 5 then trophies = trophies + 1 end
+    end
   end
   for i = #list + 1, #rows do rows[i]:Hide() end
 
   footer:ClearAllPoints()
   footer:SetPoint("TOPLEFT", 10, -42 - #list * ROW_HEIGHT)
-  if #list > 0 then
-    -- Trophy-rank fish sit at exactly 100.0, so zone max = 100 per fish
-    footer:SetText(("Zone: |cffffd100%.1f|r / %d pts   Trophies: |cffff8000%d|r/%d"):format(total, #list * 100, trophies, #list))
+  if scoreableCount > 0 then
+    -- Trophy-rank fish sit at exactly 100.0, so zone max = 100 per scoreable fish
+    footer:SetText(("Zone: |cffffd100%.1f|r / %d pts   Trophies: |cffff8000%d|r/%d"):format(total, scoreableCount * 100, trophies, scoreableCount))
+  elseif #list > 0 then
+    footer:SetText("No scoreable Midnight fish in this zone.")
   else
     footer:SetText("No Midnight fish recorded for this zone.")
   end
@@ -496,16 +514,22 @@ local function update()
   wipe(currentList)
   wipe(zoneAgg)
   pendingLoads = 0
+  globalScoreable = 0
   for _, fdef in ipairs(FISH) do
     local info = parseFish(fdef)
     if info then
       checkProgress(info) -- notifications/celebrations fire even while the panel is hidden
+      if info.scoreable then
+        globalScoreable = globalScoreable + 1
+      end
       local inZone = false
       for _, area in ipairs(info.areas) do
-        local agg = zoneAgg[area] or { total = 0, count = 0 }
-        agg.total = agg.total + info.score
-        agg.count = agg.count + 1
-        zoneAgg[area] = agg
+        if info.scoreable then
+          local agg = zoneAgg[area] or { total = 0, count = 0 }
+          agg.total = agg.total + info.score
+          agg.count = agg.count + 1
+          zoneAgg[area] = agg
+        end
         if not inZone and zones[area:lower()] then
           currentList[#currentList + 1] = info
           inZone = true
@@ -516,6 +540,7 @@ local function update()
     end
   end
   table.sort(currentList, function(a, b)
+    if a.scoreable ~= b.scoreable then return a.scoreable end -- unscoreable oddities last
     if a.score ~= b.score then return a.score > b.score end
     return a.name < b.name
   end)
