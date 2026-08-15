@@ -488,7 +488,7 @@ local function render(zoneLabel, list)
   legend:ClearAllPoints()
   legend:SetPoint("TOPLEFT", zoneNames, "BOTTOMLEFT", -4, -8)
 
-  frame:SetHeight(40 + #list * ROW_HEIGHT + 30 + 18 + zoneNames:GetStringHeight() + 30)
+  frame:SetHeight(40 + #list * ROW_HEIGHT + 30 + 18 + zoneNames:GetStringHeight() + 12)
 end
 
 local function update()
