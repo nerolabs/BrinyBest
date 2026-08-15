@@ -335,6 +335,19 @@ scoreLine:SetJustifyH("LEFT")
 local footer = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
 footer:SetJustifyH("LEFT")
 
+local zHeader = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+zHeader:SetJustifyH("LEFT")
+zHeader:SetText("Improvement opportunities:")
+
+local zoneNames = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+zoneNames:SetJustifyH("LEFT")
+zoneNames:SetPoint("TOPLEFT", zHeader, "BOTTOMLEFT", 4, -3)
+
+local zoneStats = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+zoneStats:SetJustifyH("RIGHT")
+zoneStats:SetPoint("TOP", zoneNames, "TOP", 0, 0)
+zoneStats:SetPoint("RIGHT", frame, "RIGHT", -12, 0)
+
 local legend = frame:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
 legend:SetJustifyH("LEFT")
 legend:SetText("|cff69ccf0(open)|r / |cffffcc00(pool)|r / |cff1eff00(either)|r shows where catch rates are best")
@@ -391,6 +404,16 @@ end
 
 local pendingLoads = 0
 local currentList = {}
+local zoneAgg = {}
+
+-- 2500 of the 2700 possible points means every zone effectively needs a ~92.5% average
+local TARGET_PCT = 2500 / 2700 * 100
+
+local function pctColor(pct)
+  if pct >= TARGET_PCT then return "1eff00" end -- on pace
+  if pct >= 80 then return "ffd100" end        -- close
+  return "ff7f3f"                              -- biggest opportunities
+end
 
 local function requestSpellData()
   for _, fdef in ipairs(FISH) do
@@ -432,24 +455,60 @@ local function render(zoneLabel, list)
   else
     footer:SetText("No Midnight fish recorded for this zone.")
   end
-  legend:ClearAllPoints()
-  legend:SetPoint("TOPLEFT", footer, "BOTTOMLEFT", 0, -2)
+  -- all-zone opportunity summary, biggest missing points first
+  local zlist = {}
+  for name, agg in pairs(zoneAgg) do
+    zlist[#zlist + 1] = { name = name, total = agg.total, max = agg.count * 100 }
+  end
+  table.sort(zlist, function(x, y)
+    local mx, my = x.max - x.total, y.max - y.total
+    if mx ~= my then return mx > my end
+    return x.name < y.name
+  end)
+  local names, stats = {}, {}
+  local cur = (zoneLabel or ""):lower()
+  for _, z in ipairs(zlist) do
+    local n = z.name
+    if n:lower() == cur then n = "|cffffd100" .. n .. "|r" end
+    names[#names + 1] = n
+    local pct = z.max > 0 and (z.total / z.max * 100) or 0
+    stats[#stats + 1] = ("%.0f / %d  |cff%s%.0f%%|r  ·  %.0f left"):format(
+      z.total, z.max, pctColor(pct), pct, z.max - z.total)
+  end
+  zHeader:ClearAllPoints()
+  zHeader:SetPoint("TOPLEFT", footer, "BOTTOMLEFT", 0, -8)
+  if #zlist > 0 then
+    zHeader:SetText(("Improvement opportunities |cff9d9d9d(target %.1f%% avg)|r:"):format(TARGET_PCT))
+  else
+    zHeader:SetText("")
+  end
+  zoneNames:SetText(table.concat(names, "\n"))
+  zoneStats:SetText(table.concat(stats, "\n"))
 
-  frame:SetHeight(40 + #list * ROW_HEIGHT + 34)
+  legend:ClearAllPoints()
+  legend:SetPoint("TOPLEFT", zoneNames, "BOTTOMLEFT", -4, -8)
+
+  frame:SetHeight(40 + #list * ROW_HEIGHT + 30 + 18 + zoneNames:GetStringHeight() + 30)
 end
 
 local function update()
   local zones = currentZoneNames()
   wipe(currentList)
+  wipe(zoneAgg)
   pendingLoads = 0
   for _, fdef in ipairs(FISH) do
     local info = parseFish(fdef)
     if info then
       checkProgress(info) -- notifications/celebrations fire even while the panel is hidden
+      local inZone = false
       for _, area in ipairs(info.areas) do
-        if zones[area:lower()] then
+        local agg = zoneAgg[area] or { total = 0, count = 0 }
+        agg.total = agg.total + info.score
+        agg.count = agg.count + 1
+        zoneAgg[area] = agg
+        if not inZone and zones[area:lower()] then
           currentList[#currentList + 1] = info
-          break
+          inZone = true
         end
       end
     else
