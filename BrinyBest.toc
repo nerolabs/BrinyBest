@@ -1,0 +1,9 @@
+## Interface: 120100
+## Title: BrinyBest
+## Notes: Per-zone fish scores, catch ranks, and fishing tips for The Briny Best achievement
+## Author: Andrew
+## Version: 1.0.4
+## SavedVariables: BrinyBestDB
+## IconTexture: Interface\Icons\INV_Fishingpole_02
+
+BrinyBest.lua

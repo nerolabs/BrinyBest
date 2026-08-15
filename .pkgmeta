@@ -1,0 +1,6 @@
+package-as: BrinyBest
+
+ignore:
+  - README.md
+  - assets
+  - tools
