@@ -92,7 +92,8 @@ end
 -- inherit the isle's loot table via the parent-map walk, so no fish needs to list
 -- the vaults except the Stargorger, which is exclusive to them.
 local AREA_CORRECTIONS = {
-  ["Atal'Utek"] = { "Vaults of Atal'Utek" },
+  -- Stargorger lists both: lure-caught in the vaults AND on normal isle pools
+  ["Atal'Utek"] = { "Vaults of Atal'Utek", "The Coiled Isle" },
   ["Vaults of Ula'tek"] = { "The Coiled Isle" },
 }
 
@@ -102,7 +103,7 @@ local AREA_CORRECTIONS = {
 -- calls the vaults "Temple of Ula'tek" — a third name for the same place). A note
 -- here replaces the generic disclaimer line in that fish's tooltip.
 local FISH_NOTES = {
-  [1295408] = "Requires the Coiled Stargorger Lure (reputation-locked) — cast in the Vaults of Atal'Utek.", -- Coiled Stargorger
+  [1295408] = "Requires the Coiled Stargorger Lure (reputation-locked) — works in the Vaults of Atal'Utek and on normal pools around The Coiled Isle.", -- Coiled Stargorger
   [1295406] = "No lure required, but one definitely helps — caught in pools and open water around The Coiled Isle.", -- Ula'tek Snakehead
 }
 
