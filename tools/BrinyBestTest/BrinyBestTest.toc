@@ -2,7 +2,8 @@
 ## Title: BrinyBest Test Harness
 ## Notes: Dev-only simulation commands for BrinyBest (/bbtest). Not packaged for release.
 ## Author: Andrew
-## Version: 1.0.0
+## Version: 1.1.0
 ## Dependencies: BrinyBest
+## SavedVariables: BrinyBestTestDB
 
 BrinyBestTest.lua

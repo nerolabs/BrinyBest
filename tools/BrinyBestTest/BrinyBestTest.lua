@@ -9,10 +9,52 @@
 --                           (works anywhere, no fish data needed)
 -- /bbtest list [copy]     - dump all scoreable fish grouped by zone (oddities noted
 --                           separately); "copy" opens a copyable markdown window
+-- /bbtest ranks [copy]    - per-fish (score, rank) pairs plus every score range
+--                           observed at each rank (logged across sessions via
+--                           SavedVariables) — brackets each species' rank cutoffs
 
 local function chat(msg)
   print("|cffff9933BrinyBestTest:|r " .. msg)
 end
+
+local RANK_ORDER = { "Guppy", "Minnow", "Pike", "Shark", "Trophy" }
+
+-- Record the (score, rank) pair of every scoreable fish; min/max per rank per fish
+-- accumulate in BrinyBestTestDB so cutoff bounds tighten as Andrew fishes.
+local function recordRanks()
+  BrinyBestTestDB = BrinyBestTestDB or {}
+  BrinyBestTestDB.rankObs = BrinyBestTestDB.rankObs or {}
+  local obs = BrinyBestTestDB.rankObs
+  for _, fdef in ipairs(BrinyBest.fish) do
+    local info = BrinyBest.ParseFish(fdef)
+    if info and info.scoreable and info.rank and info.score > 0 then
+      local o = obs[info.id] or { name = info.name, ranks = {} }
+      o.name = info.name
+      local r = o.ranks[info.rank]
+      if not r then
+        o.ranks[info.rank] = { min = info.score, max = info.score }
+      else
+        if info.score < r.min then r.min = info.score end
+        if info.score > r.max then r.max = info.score end
+      end
+      obs[info.id] = o
+    end
+  end
+end
+
+local rankWatcher = CreateFrame("Frame")
+rankWatcher:RegisterEvent("PLAYER_LOGIN")
+rankWatcher:RegisterEvent("CRITERIA_UPDATE")
+local recordQueued = false
+rankWatcher:SetScript("OnEvent", function()
+  if recordQueued then return end
+  recordQueued = true
+  -- catches fire ~13-15 CRITERIA_UPDATEs; debounce and let the score text settle
+  C_Timer.After(2, function()
+    recordQueued = false
+    recordRanks()
+  end)
+end)
 
 local function buildRoster()
   local zones, zoneNames, oddities = {}, {}, {}
@@ -155,8 +197,50 @@ SlashCmdList.BRINYBESTTEST = function(msg)
       end
     end
 
+  elseif cmd == "ranks" then
+    recordRanks()
+    local obs = (BrinyBestTestDB and BrinyBestTestDB.rankObs) or {}
+    local lines = {}
+    for _, fdef in ipairs(BrinyBest.fish) do
+      local info = BrinyBest.ParseFish(fdef)
+      if info and info.scoreable then
+        local seen = {}
+        local o = obs[info.id]
+        if o then
+          for _, rname in ipairs(RANK_ORDER) do
+            local r = o.ranks[rname]
+            if r then
+              if r.min == r.max then
+                seen[#seen + 1] = ("%s %.1f"):format(rname, r.min)
+              else
+                seen[#seen + 1] = ("%s %.1f-%.1f"):format(rname, r.min, r.max)
+              end
+            end
+          end
+        end
+        lines[#lines + 1] = {
+          score = info.score,
+          text = ("%s — now %.1f (%s)%s"):format(info.name, info.score,
+            info.rank or "unranked",
+            #seen > 0 and ("; seen: " .. table.concat(seen, ", ")) or ""),
+        }
+      end
+    end
+    table.sort(lines, function(a, b) return a.score > b.score end)
+    if rest:lower() == "copy" then
+      local out = {
+        "**Per-fish (score, rank) observations** — score ranges seen at each rank bracket that species' cutoffs",
+        "",
+      }
+      for _, l in ipairs(lines) do out[#out + 1] = "- " .. l.text end
+      showCopy(table.concat(out, "\n"))
+    else
+      chat(("%d fish observed (ranges persist across sessions):"):format(#lines))
+      for _, l in ipairs(lines) do print(l.text) end
+    end
+
   else
-    chat("commands: /bbtest improve [name] | /bbtest trophy [name] | /bbtest fake | /bbtest list [copy]")
+    chat("commands: /bbtest improve [name] | /bbtest trophy [name] | /bbtest fake | /bbtest list [copy] | /bbtest ranks [copy]")
   end
 end
 
