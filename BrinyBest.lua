@@ -51,7 +51,20 @@ local FISH = {
 local CAT_HEX = { "ffffff", "1eff00", "0070dd", "a335ee" }
 local CAT_RGB = { { 1, 1, 1 }, { 0.12, 1, 0 }, { 0, 0.44, 0.87 }, { 0.64, 0.21, 0.93 } }
 local RANK_NUM = { Guppy = 1, Minnow = 2, Pike = 3, Shark = 4, Trophy = 5 }
+local RANK_ORDER = { "Guppy", "Minnow", "Pike", "Shark", "Trophy" }
 local RANK_HEX = { Guppy = "9d9d9d", Minnow = "1eff00", Pike = "0070dd", Shark = "a335ee", Trophy = "ff8000" }
+
+-- Rank score cutoffs, mapped from live warband data (Aug 16 2026, 27-fish baseline,
+-- perfectly monotonic across species so cutoffs are universal). Observed bounds:
+-- Minnow ∈ (71.3, 75.4], Pike ∈ (75.4, 81.1], Shark ∈ (91.1, 96.1]; Trophy = 100.0
+-- exactly. 75/80/95 are the only round numbers that fit; est marks them provisional
+-- until gap catches confirm. Community-claimed 70/90 are refuted by the same data.
+local RANK_CUTOFFS = {
+  Minnow = { score = 75, est = true },
+  Pike = { score = 80, est = true },
+  Shark = { score = 95, est = true },
+  Trophy = { score = 100 },
+}
 
 local ROW_HEIGHT = 15
 local FRAME_WIDTH = 320
@@ -430,6 +443,13 @@ local function getRow(i)
         GameTooltip:AddLine(("Catch Rank: |cff%s%s|r (%d of 5)"):format(RANK_HEX[info.rank], info.rank, info.rankNum), 1, 1, 1)
       else
         GameTooltip:AddLine("Catch Rank: |cff9d9d9dnot caught yet|r", 1, 1, 1)
+      end
+      if info.rankNum > 0 and info.rankNum < 5 then
+        local nextRank = RANK_ORDER[info.rankNum + 1]
+        local cut = RANK_CUTOFFS[nextRank]
+        GameTooltip:AddLine(("Next rank: |cff%s%s|r at %s%d — %.1f points to go"):format(
+          RANK_HEX[nextRank], nextRank, cut.est and "~" or "", cut.score,
+          math.max(0, cut.score - info.score)), 1, 1, 1)
       end
     end
     if info.special then
