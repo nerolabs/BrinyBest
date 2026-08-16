@@ -84,10 +84,18 @@ local AREA_CORRECTIONS = {
 }
 
 -- Exceptions to the generic "any fish, open water or pools" rule, verified in-game
--- 2026-08-16: the Coiled Stargorger never bites without its rep-locked lure. A note
+-- 2026-08-16: the Coiled Stargorger never bites without its rep-locked lure, while
+-- the Ula'tek Snakehead's description falsely claims a lure requirement (it also
+-- calls the vaults "Temple of Ula'tek" — a third name for the same place). A note
 -- here replaces the generic disclaimer line in that fish's tooltip.
 local FISH_NOTES = {
   [1295408] = "Requires the Coiled Stargorger Lure (reputation-locked) — cast in the Vaults of Atal'Utek.", -- Coiled Stargorger
+  [1295406] = "No lure required — caught in pools and open water around The Coiled Isle; the game's lure text is wrong.", -- Ula'tek Snakehead
+}
+
+-- Blizzard rate lines too wrong to show (e.g. the Snakehead's phantom lure requirement)
+local FISH_HIDE_RATES = {
+  [1295406] = true, -- Ula'tek Snakehead
 }
 
 local function parseFish(fdef)
@@ -434,8 +442,10 @@ local function getRow(i)
         GameTooltip:AddLine("  - " .. p, 1, 1, 1)
       end
     end
-    for _, rate in ipairs(info.rates) do
-      GameTooltip:AddLine(rate, 0.8, 0.8, 0.6, true)
+    if not FISH_HIDE_RATES[info.id] then
+      for _, rate in ipairs(info.rates) do
+        GameTooltip:AddLine(rate, 0.8, 0.8, 0.6, true)
+      end
     end
     local note = FISH_NOTES[info.id]
     if note then
