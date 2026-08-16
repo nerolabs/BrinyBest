@@ -90,7 +90,7 @@ local AREA_CORRECTIONS = {
 -- here replaces the generic disclaimer line in that fish's tooltip.
 local FISH_NOTES = {
   [1295408] = "Requires the Coiled Stargorger Lure (reputation-locked) — cast in the Vaults of Atal'Utek.", -- Coiled Stargorger
-  [1295406] = "No lure required — caught in pools and open water around The Coiled Isle; the game's lure text is wrong.", -- Ula'tek Snakehead
+  [1295406] = "No lure required, but one definitely helps — caught in pools and open water around The Coiled Isle.", -- Ula'tek Snakehead
 }
 
 -- Blizzard rate lines too wrong to show (e.g. the Snakehead's phantom lure requirement)
