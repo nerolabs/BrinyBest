@@ -72,6 +72,15 @@ local function stripCodes(s)
   return s
 end
 
+-- Blizzard's 12.1 fish descriptions garble the Coiled Isle vault names. Verified
+-- in-game 2026-08-16: the only real sub-zone is "Vaults of Atal'Utek" (its own map
+-- zone under The Coiled Isle; "Atal'Utek" and "Vaults of Ula'tek" don't exist), and
+-- Ula'tek Snakehead is caught mostly on the isle itself, secondarily in the vaults.
+local AREA_CORRECTIONS = {
+  ["Atal'Utek"] = { "Vaults of Atal'Utek" },
+  ["Vaults of Ula'tek"] = { "The Coiled Isle", "Vaults of Atal'Utek" },
+}
+
 local function parseFish(fdef)
   local desc = C_Spell.GetSpellDescription(fdef.id)
   if not desc or desc == "" then return nil end
@@ -128,6 +137,17 @@ local function parseFish(fdef)
       mode = nil
     end
   end
+
+  local corrected, seenArea = {}, {}
+  for _, a in ipairs(info.areas) do
+    for _, r in ipairs(AREA_CORRECTIONS[a] or { a }) do
+      if not seenArea[r] then
+        seenArea[r] = true
+        corrected[#corrected + 1] = r
+      end
+    end
+  end
+  info.areas = corrected
 
   -- All Midnight fish can be caught in both open water and pools; the Rates text
   -- only expresses where the catch rate is better, so the tag shows bias, not exclusivity.
