@@ -376,10 +376,18 @@ local zoneNames = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall
 zoneNames:SetJustifyH("LEFT")
 zoneNames:SetPoint("TOPLEFT", zHeader, "BOTTOMLEFT", 4, -3)
 
-local zoneStats = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-zoneStats:SetJustifyH("RIGHT")
-zoneStats:SetPoint("TOP", zoneNames, "TOP", 0, 0)
-zoneStats:SetPoint("RIGHT", frame, "RIGHT", -12, 0)
+-- three right-anchored columns so score, percent, and points-left align across
+-- rows regardless of digit count (a single right-justified string wiggles)
+local function statColumn(rightOffset)
+  local fs = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+  fs:SetJustifyH("RIGHT")
+  fs:SetPoint("TOP", zoneNames, "TOP", 0, 0)
+  fs:SetPoint("RIGHT", frame, "RIGHT", rightOffset, 0)
+  return fs
+end
+local zoneScore = statColumn(-104)
+local zonePct = statColumn(-68)
+local zoneLeft = statColumn(-12)
 
 local legend = frame:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
 legend:SetJustifyH("LEFT")
@@ -517,15 +525,16 @@ local function render(zoneLabel, list)
     if mx ~= my then return mx > my end
     return x.name < y.name
   end)
-  local names, stats = {}, {}
+  local names, scores, pcts, lefts = {}, {}, {}, {}
   local cur = (zoneLabel or ""):lower()
   for _, z in ipairs(zlist) do
     local n = z.name
     if n:lower() == cur then n = "|cffffd100" .. n .. "|r" end
     names[#names + 1] = n
     local pct = z.max > 0 and (z.total / z.max * 100) or 0
-    stats[#stats + 1] = ("%.0f / %d  |cff%s%.0f%%|r  ·  %.0f left"):format(
-      z.total, z.max, pctColor(pct, targetPct(globalMax)), pct, z.max - z.total)
+    scores[#scores + 1] = ("%.0f / %d"):format(z.total, z.max)
+    pcts[#pcts + 1] = ("|cff%s%.0f%%|r"):format(pctColor(pct, targetPct(globalMax)), pct)
+    lefts[#lefts + 1] = ("%.0f left"):format(z.max - z.total)
   end
   zHeader:ClearAllPoints()
   zHeader:SetPoint("TOPLEFT", footer, "BOTTOMLEFT", 0, -8)
@@ -535,7 +544,9 @@ local function render(zoneLabel, list)
     zHeader:SetText("")
   end
   zoneNames:SetText(table.concat(names, "\n"))
-  zoneStats:SetText(table.concat(stats, "\n"))
+  zoneScore:SetText(table.concat(scores, "\n"))
+  zonePct:SetText(table.concat(pcts, "\n"))
+  zoneLeft:SetText(table.concat(lefts, "\n"))
 
   legend:ClearAllPoints()
   legend:SetPoint("TOPLEFT", zoneNames, "BOTTOMLEFT", -4, -8)
