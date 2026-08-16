@@ -9,9 +9,10 @@
 --                           (works anywhere, no fish data needed)
 -- /bbtest list [copy]     - dump all scoreable fish grouped by zone (oddities noted
 --                           separately); "copy" opens a copyable markdown window
--- /bbtest ranks [copy]    - per-fish (score, rank) pairs plus every score range
---                           observed at each rank (logged across sessions via
---                           SavedVariables) — brackets each species' rank cutoffs
+-- /bbtest ranks           - copyable window of per-fish (score, rank) pairs plus
+--                           every score range observed at each rank (logged across
+--                           sessions via SavedVariables) — brackets each species'
+--                           rank cutoffs
 
 local function chat(msg)
   print("|cffff9933BrinyBestTest:|r " .. msg)
@@ -227,20 +228,16 @@ SlashCmdList.BRINYBESTTEST = function(msg)
       end
     end
     table.sort(lines, function(a, b) return a.score > b.score end)
-    if rest:lower() == "copy" then
-      local out = {
-        "**Per-fish (score, rank) observations** — score ranges seen at each rank bracket that species' cutoffs",
-        "",
-      }
-      for _, l in ipairs(lines) do out[#out + 1] = "- " .. l.text end
-      showCopy(table.concat(out, "\n"))
-    else
-      chat(("%d fish observed (ranges persist across sessions):"):format(#lines))
-      for _, l in ipairs(lines) do print(l.text) end
-    end
+    local out = {
+      "**Per-fish (score, rank) observations** — score ranges seen at each rank bracket that species' cutoffs",
+      "",
+    }
+    for _, l in ipairs(lines) do out[#out + 1] = "- " .. l.text end
+    showCopy(table.concat(out, "\n"))
+    chat(("%d fish observed (ranges persist across sessions) — Cmd+C to copy"):format(#lines))
 
   else
-    chat("commands: /bbtest improve [name] | /bbtest trophy [name] | /bbtest fake | /bbtest list [copy] | /bbtest ranks [copy]")
+    chat("commands: /bbtest improve [name] | /bbtest trophy [name] | /bbtest fake | /bbtest list [copy] | /bbtest ranks")
   end
 end
 
