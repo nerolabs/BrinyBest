@@ -81,6 +81,13 @@ local AREA_CORRECTIONS = {
   ["Vaults of Ula'tek"] = { "The Coiled Isle", "Vaults of Atal'Utek" },
 }
 
+-- Exceptions to the generic "any fish, open water or pools" rule, verified in-game
+-- 2026-08-16: the Coiled Stargorger never bites without its rep-locked lure. A note
+-- here replaces the generic disclaimer line in that fish's tooltip.
+local FISH_NOTES = {
+  [1295408] = "Requires the Coiled Stargorger Lure (reputation-locked) — cast in the Vaults of Atal'Utek.", -- Coiled Stargorger
+}
+
 local function parseFish(fdef)
   local desc = C_Spell.GetSpellDescription(fdef.id)
   if not desc or desc == "" then return nil end
@@ -420,7 +427,12 @@ local function getRow(i)
     for _, rate in ipairs(info.rates) do
       GameTooltip:AddLine(rate, 0.8, 0.8, 0.6, true)
     end
-    GameTooltip:AddLine("All fish can be caught in open water or pools; the tag shows the better rate.", 0.5, 0.5, 0.5, true)
+    local note = FISH_NOTES[info.id]
+    if note then
+      GameTooltip:AddLine(note, 1, 0.55, 0.25, true)
+    else
+      GameTooltip:AddLine("All fish can be caught in open water or pools; the tag shows the better rate.", 0.5, 0.5, 0.5, true)
+    end
     GameTooltip:Show()
   end)
   row:SetScript("OnLeave", function() GameTooltip:Hide() end)
