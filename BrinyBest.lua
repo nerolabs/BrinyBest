@@ -75,10 +75,12 @@ end
 -- Blizzard's 12.1 fish descriptions garble the Coiled Isle vault names. Verified
 -- in-game 2026-08-16: the only real sub-zone is "Vaults of Atal'Utek" (its own map
 -- zone under The Coiled Isle; "Atal'Utek" and "Vaults of Ula'tek" don't exist), and
--- Ula'tek Snakehead is caught mostly on the isle itself, secondarily in the vaults.
+-- Ula'tek Snakehead is an ordinary Coiled Isle pool/open-water fish. The vaults
+-- inherit the isle's loot table via the parent-map walk, so no fish needs to list
+-- the vaults except the Stargorger, which is exclusive to them.
 local AREA_CORRECTIONS = {
   ["Atal'Utek"] = { "Vaults of Atal'Utek" },
-  ["Vaults of Ula'tek"] = { "The Coiled Isle", "Vaults of Atal'Utek" },
+  ["Vaults of Ula'tek"] = { "The Coiled Isle" },
 }
 
 -- Exceptions to the generic "any fish, open water or pools" rule, verified in-game
