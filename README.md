@@ -33,3 +33,9 @@ From [CurseForge](https://www.curseforge.com/wow/addons/brinybest) or [GitHub Re
 ## Releasing (maintainers)
 
 Push a `v*` tag; the GitHub Action packages via BigWigs packager and uploads to GitHub Releases, plus CurseForge/Wago once `X-Curse-Project-ID`/`X-Wago-ID` are set in the TOC and the `CF_API_KEY`/`WAGO_API_TOKEN` repo secrets exist.
+
+## Localization
+
+BrinyBest works by parsing Blizzard's localized Fishing Journal text, so each game language needs its exact label strings. Supported: **enUS/enGB, deDE, esES/esMX, frFR, itIT, koKR, ptBR, ruRU, zhCN**. On an untranslated client (currently zhTW) the addon falls back to English parsing and prints a note in chat.
+
+Rank names beyond the first are resolved from score cutoffs when a locale's rank words aren't known yet, so partial translations still work. Spotted a wrong or missing string on your client? [Open an issue](https://github.com/nerolabs/BrinyBest/issues) with a screenshot of a fish's journal description.

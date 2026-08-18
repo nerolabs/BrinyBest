@@ -66,6 +66,189 @@ local RANK_CUTOFFS = {
   Trophy = { score = 100 },
 }
 
+-- ---------------------------------------------------------------- localization
+-- The addon works by parsing Blizzard's localized journal descriptions, so each
+-- locale needs the exact label/header strings Blizzard uses there (plain strings,
+-- matched literally — no Lua patterns, so translations can't break matching).
+-- rankWords maps localized rank names to canonical keys; when a locale lacks them
+-- (or Blizzard renames), rank falls back to RANK_CUTOFFS applied to the score.
+-- openWaterWord/poolWord/onlyWord (lowercase) drive the (open)/(pool) tags and are
+-- optional — without them the tags simply don't show.
+-- Labels/headers are colon-free prefixes (French uses spaced colons, Korean none,
+-- Chinese fullwidth ones). Header fields may be a string or a list of alternatives
+-- (Blizzard is inconsistent within a locale: itIT "Probabilità"/"Frequenza", zhCN
+-- "特殊"/"特殊效果"). Strings scraped from Wowhead's localized spell pages
+-- (1295406/1295409), which mirror the in-game 12.1 text. Only the Guppy rank word
+-- is visible there; other ranks resolve via the RANK_CUTOFFS score fallback.
+local LOCALE_PARSE = {
+  enUS = {
+    scoreLabel = "Anglin' Score",
+    rankLabel = "Catch Rank",
+    areasHeader = "Areas you can find",
+    poolsHeader = "Fishing Pools",
+    ratesHeader = "Rates",
+    descriptionHeader = "Description",
+    specialHeader = "Special",
+    pointsWord = "points",
+    rankWords = { Guppy = "Guppy", Minnow = "Minnow", Pike = "Pike", Shark = "Shark", Trophy = "Trophy" },
+    openWaterWord = "open water",
+    poolWord = "pool",
+    onlyWord = "only",
+  },
+  deDE = {
+    scoreLabel = "Angelwertung",
+    rankLabel = "Fangrang",
+    areasHeader = "Verbreitungsgebiete",
+    poolsHeader = "Fischschwärme",
+    ratesHeader = "Raten",
+    descriptionHeader = "Beschreibung",
+    specialHeader = "Besondere Verwendung",
+    pointsWord = "Punkte",
+    rankWords = { ["Guppy"] = "Guppy" },
+    openWaterWord = "offenen gewässern",
+    poolWord = "teich",
+    onlyWord = "nur",
+  },
+  esES = {
+    scoreLabel = "Puntuación de pesca",
+    rankLabel = "Rango de la captura",
+    areasHeader = "Zonas en las que puedes encontrar",
+    poolsHeader = "Zonas de pesca",
+    ratesHeader = "Frecuencia",
+    descriptionHeader = "Descripción",
+    specialHeader = "Especial",
+    pointsWord = "puntos",
+    rankWords = { ["Lebiste"] = "Guppy" },
+    openWaterWord = "mar abierto",
+    poolWord = "estanque",
+    onlyWord = "solo",
+  },
+  frFR = {
+    scoreLabel = "Score de pêche",
+    rankLabel = "Rang de capture",
+    areasHeader = "Poisson présent dans les régions",
+    poolsHeader = "Bancs de poissons",
+    ratesHeader = "Fréquence",
+    descriptionHeader = "Description",
+    specialHeader = "Utilisation spéciale",
+    rankWords = { ["guppy"] = "Guppy" },
+    openWaterWord = "étendues d’eau",
+    poolWord = "bancs de poissons",
+    onlyWord = "uniquement",
+  },
+  itIT = {
+    scoreLabel = "Punteggio di Pesca",
+    rankLabel = "Grado di Cattura",
+    areasHeader = "Aree in cui si può trovare",
+    poolsHeader = "Pozze di Pesca",
+    ratesHeader = { "Probabilità", "Frequenza" },
+    descriptionHeader = "Descrizione",
+    specialHeader = "Speciale",
+    pointsWord = "punti",
+    rankWords = { ["Bavosa"] = "Guppy" },
+    openWaterWord = "mare aperto",
+    poolWord = "pozze",
+    onlyWord = "solo",
+  },
+  koKR = {
+    scoreLabel = "강태공 점수",
+    rankLabel = "어획 등급",
+    areasHeader = "이 생선을 잡을 수 있는 지역",
+    poolsHeader = "낚시 웅덩이",
+    ratesHeader = "확률",
+    descriptionHeader = "설명",
+    specialHeader = "특수",
+    pointsWord = "점",
+    rankWords = { ["치어"] = "Guppy" },
+    openWaterWord = "개방된 수역",
+    poolWord = "웅덩이",
+  },
+  ptBR = {
+    scoreLabel = "Pontuação de pescaria",
+    rankLabel = "Grau da captura",
+    areasHeader = "Áreas de ocorrência",
+    poolsHeader = "Pesqueiros",
+    ratesHeader = "Frequência",
+    descriptionHeader = "Descrição",
+    specialHeader = "Especial",
+    pointsWord = "pontos",
+    rankWords = { ["Lebiste"] = "Guppy" },
+    openWaterWord = "águas abertas",
+    poolWord = "pesqueiro",
+    onlyWord = "apenas",
+  },
+  ruRU = {
+    scoreLabel = "Счет рыбалки",
+    rankLabel = "Категория улова",
+    areasHeader = "Зоны обитания",
+    poolsHeader = "Косяки рыб",
+    ratesHeader = "Распространенность",
+    descriptionHeader = "Описание",
+    specialHeader = "Особое свойство",
+    rankWords = { ["гуппи"] = "Guppy" },
+    openWaterWord = "открытом море",
+    poolWord = "прудах",
+    onlyWord = "только",
+  },
+  zhCN = {
+    scoreLabel = "钓鱼得分",
+    rankLabel = "捕获等级",
+    areasHeader = "可发现此鱼的水域",
+    poolsHeader = "垂钓池",
+    ratesHeader = "几率",
+    descriptionHeader = "描述",
+    specialHeader = "特殊",
+    pointsWord = "分",
+    rankWords = { ["孔雀鱼"] = "Guppy" },
+    openWaterWord = "开阔水域",
+    poolWord = "鱼群",
+  },
+}
+LOCALE_PARSE.enGB = LOCALE_PARSE.enUS
+LOCALE_PARSE.esMX = LOCALE_PARSE.esES
+
+local PARSE = LOCALE_PARSE[GetLocale()]
+local untranslatedLocale = not PARSE and GetLocale() or nil
+PARSE = PARSE or LOCALE_PARSE.enUS
+
+-- localized numbers may use comma decimals ("96,6"); scores never carry thousands
+local function parseNumber(s)
+  if not s then return nil end
+  return tonumber((s:gsub(",", ".")))
+end
+
+local function startsWith(line, prefix)
+  return prefix and line:sub(1, #prefix) == prefix
+end
+
+-- header fields may be one prefix or a list of alternatives
+local function startsWithAny(line, prefixes)
+  if type(prefixes) == "table" then
+    for _, p in ipairs(prefixes) do
+      if startsWith(line, p) then return true end
+    end
+    return false
+  end
+  return startsWith(line, prefixes)
+end
+
+-- list items start with "-" (most locales) or "–" (frFR); values may carry trailing
+-- "." / " ;" (frFR) or "。" (zhCN)
+local function bulletValue(line)
+  if line:sub(1, 1) ~= "-" and line:sub(1, 3) ~= "\226\128\147" then return nil end
+  local v = line:gsub("^[%-\226\128\147]+%s*", "", 1):gsub("[%s%.;\227\128\130]+$", "")
+  return v ~= "" and v or nil
+end
+
+local function rankFromScore(score)
+  local best
+  for _, rname in ipairs(RANK_ORDER) do
+    local cut = RANK_CUTOFFS[rname]
+    if not cut or score >= cut.score then best = rname end
+  end
+  return best
+end
+
 local ROW_HEIGHT = 15
 local FRAME_WIDTH = 320
 
@@ -128,31 +311,43 @@ local function parseFish(fdef)
   }
   -- Cursed Oddities (and possibly others) have no score system at all; only fish whose
   -- description carries an "Anglin' Score:" line count toward zone/global maximums
-  info.scoreable = desc:find("Anglin' Score:", 1, true) ~= nil
-  info.score = tonumber(desc:match("Anglin' Score:%s*([%d%.]+)")) or 0
-  local rankLine = desc:match("Catch Rank:%s*([^\n\r]+)")
+  local scorePos, scoreEnd = desc:find(PARSE.scoreLabel, 1, true)
+  info.scoreable = scorePos ~= nil
+  -- skip colons/spaces (incl. French " : " and fullwidth "：") up to the number,
+  -- without crossing onto the next line
+  info.score = (scoreEnd and parseNumber(desc:match("^[^%d\r\n]*([%d%.,]+)", scoreEnd + 1))) or 0
+  local _, rankEnd = desc:find(PARSE.rankLabel, 1, true)
+  local rankLine = rankEnd and desc:match("^%s*([^\n\r]+)", rankEnd + 1)
   if rankLine and not rankLine:find("%[") then
-    local word = rankLine:match("%a+")
-    if word and RANK_NUM[word] then info.rank = word end
+    -- plain-find each localized rank word (works for CJK where "words" don't split)
+    for localized, canonical in pairs(PARSE.rankWords or {}) do
+      if rankLine:find(localized, 1, true) then
+        info.rank = canonical
+        break
+      end
+    end
+  end
+  if not info.rank and info.scoreable and info.score > 0 then
+    info.rank = rankFromScore(info.score) -- cutoff fallback for untranslated rank words
   end
   info.rankNum = info.rank and RANK_NUM[info.rank] or 0
 
   local mode, lastHeader
   for rawLine in desc:gmatch("[^\n\r]+") do
     local line = rawLine:match("^%s*(.-)%s*$")
-    if line:find("^Areas you can find") then
+    if startsWithAny(line, PARSE.areasHeader) then
       mode = "areas"
-    elseif line:find("^Fishing Pools:") then
+    elseif startsWithAny(line, PARSE.poolsHeader) then
       mode = "pools"
-    elseif line:find("^Rates:") then
+    elseif startsWithAny(line, PARSE.ratesHeader) then
       mode = "rates"
-    elseif line:find("^Description:") then
+    elseif startsWithAny(line, PARSE.descriptionHeader) then
       mode = nil
-    elseif line:find("^Special:") then
+    elseif startsWithAny(line, PARSE.specialHeader) then
       mode = "special"
       lastHeader = true
-    elseif line:sub(1, 1) == "-" then
-      local v = line:match("^%-+%s*(.+)$")
+    elseif bulletValue(line) then
+      local v = bulletValue(line)
       if v then
         if mode == "areas" then
           info.areas[#info.areas + 1] = v
@@ -166,6 +361,9 @@ local function parseFish(fdef)
       info.special = line
       lastHeader = false
       mode = nil
+    elseif mode == "rates" and line ~= "" then
+      -- frFR sometimes writes a single rate line with no bullet
+      info.rates[#info.rates + 1] = (line:gsub("[%s%.;\227\128\130]+$", ""))
     end
   end
 
@@ -183,9 +381,9 @@ local function parseFish(fdef)
   -- All Midnight fish can be caught in both open water and pools; the Rates text
   -- only expresses where the catch rate is better, so the tag shows bias, not exclusivity.
   local rateText = table.concat(info.rates, " "):lower()
-  local mentionsOpen = rateText:find("open water") ~= nil
-  local mentionsPool = rateText:find("pool") ~= nil
-  if mentionsPool and rateText:find("only") then
+  local mentionsOpen = PARSE.openWaterWord and rateText:find(PARSE.openWaterWord, 1, true) ~= nil
+  local mentionsPool = PARSE.poolWord and rateText:find(PARSE.poolWord, 1, true) ~= nil
+  if mentionsPool and PARSE.onlyWord and rateText:find(PARSE.onlyWord, 1, true) then
     info.bias = "poolsonly"
   elseif mentionsOpen and mentionsPool then
     info.bias = "both"
@@ -212,11 +410,22 @@ end
 
 -- ---------------------------------------------------------------- warband score
 
+local function escapePattern(s)
+  return (s:gsub("[%^%$%(%)%%%.%[%]%*%+%-%?]", "%%%0"))
+end
+
 local function warbandScore()
   local ok, _, _, _, qty = pcall(GetAchievementCriteriaInfo, ACHIEVEMENT_ID, 1)
   local critQty = ok and qty or nil
   local desc = C_Spell.GetSpellDescription(SCORE_SPELL)
-  local precise = desc and desc:match("([%d%.]+)%s*points")
+  local precise
+  if desc then
+    if PARSE.pointsWord then
+      precise = desc:match("([%d%.,]+)%s*" .. escapePattern(PARSE.pointsWord))
+    end
+    -- fallback for locales without a pointsWord: first decimal-looking number
+    precise = precise or desc:match("(%d+[%.,]%d)")
+  end
   return precise or (critQty and tostring(critQty)) or "?", critQty
 end
 
@@ -662,6 +871,9 @@ events:SetScript("OnEvent", function(_, event, arg1)
       frame:SetPoint(BrinyBestDB.point[1], UIParent, BrinyBestDB.point[2], BrinyBestDB.point[3], BrinyBestDB.point[4])
     else
       frame:SetPoint("RIGHT", -80, 60)
+    end
+    if untranslatedLocale then
+      chat(("your client language (%s) isn't translated yet, so fish data may not parse. Help out at github.com/nerolabs/BrinyBest/issues"):format(untranslatedLocale))
     end
   elseif event == "PLAYER_ENTERING_WORLD" then
     requestSpellData()
