@@ -313,11 +313,21 @@ end
 -- Ula'tek Snakehead is an ordinary Coiled Isle pool/open-water fish. The vaults
 -- inherit the isle's loot table via the parent-map walk, so no fish needs to list
 -- the vaults except the Stargorger, which is exclusive to them.
-local AREA_CORRECTIONS = {
-  -- Stargorger lists both: lure-caught in the vaults AND on normal isle pools
-  ["Atal'Utek"] = { "Vaults of Atal'Utek", "The Coiled Isle" },
-  ["Vaults of Ula'tek"] = { "The Coiled Isle" },
+-- Keyed by raw (pre-normalization) description strings per locale; localized real
+-- zone names verified against Wowhead zone pages 16535/16365.
+local AREA_CORRECTIONS_BY_LOCALE = {
+  enUS = {
+    -- Stargorger lists both: lure-caught in the vaults AND on normal isle pools
+    ["Atal'Utek"] = { "Vaults of Atal'Utek", "The Coiled Isle" },
+    ["Vaults of Ula'tek"] = { "The Coiled Isle" },
+  },
+  frFR = {
+    ["Atal’Utek"] = { "Caveaux d’Atal’Utek", "Île Annelée" },
+    ["caveaux d’Ula’tek"] = { "Île Annelée" },
+  },
 }
+AREA_CORRECTIONS_BY_LOCALE.enGB = AREA_CORRECTIONS_BY_LOCALE.enUS
+local AREA_CORRECTIONS = AREA_CORRECTIONS_BY_LOCALE[GetLocale()] or {}
 
 -- Exceptions to the generic "any fish, open water or pools" rule, verified in-game
 -- 2026-08-16: the Coiled Stargorger never bites without its rep-locked lure, while
