@@ -484,6 +484,7 @@ local function parseFish(fdef)
   info.valuesPending = info.scoreable and scoreRaw == nil
   local _, rankEnd = findLabel(desc, PARSE.rankLabel)
   local rankLine = rankEnd and desc:match("^%s*([^\n\r]+)", rankEnd + 1)
+  info.rankLine = rankLine -- raw, for the rank-word harvester in the dev harness
   if rankLine and not rankLine:find("%[") then
     -- plain-find each localized rank word (works for CJK where "words" don't split)
     for localized, canonical in pairs(PARSE.rankWords or {}) do

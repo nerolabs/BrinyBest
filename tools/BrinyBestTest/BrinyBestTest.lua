@@ -261,6 +261,27 @@ SlashCmdList.BRINYBESTTEST = function(msg)
       showCopy(table.concat(out, "\n"))
     end
 
+  elseif cmd == "rankwords" then
+    -- harvest this client language's rank vocabulary: each fish's raw rank line
+    -- paired with its score (the score brackets which canonical rank the word is)
+    local byLine = {}
+    for _, fdef in ipairs(BrinyBest.fish) do
+      local info = BrinyBest.ParseFish(fdef)
+      if info and info.scoreable and info.rankLine then
+        local line = info.rankLine:gsub("^[%s:：]+", "")
+        byLine[line] = byLine[line] or {}
+        table.insert(byLine[line], ("%s %.1f"):format(info.name, info.score))
+      end
+    end
+    local out = { "Locale: " .. GetLocale(), "" }
+    local keys = {}
+    for line in pairs(byLine) do keys[#keys + 1] = line end
+    table.sort(keys)
+    for _, line in ipairs(keys) do
+      out[#out + 1] = ("%q  <-  %s"):format(line, table.concat(byLine[line], ", "))
+    end
+    showCopy(table.concat(out, "\n"))
+
   elseif cmd == "maps" then
     local out = {}
     local m = C_Map.GetBestMapForUnit("player")
