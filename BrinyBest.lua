@@ -362,6 +362,36 @@ local function rankFromScore(score)
   return best
 end
 
+local function firstAlt(v)
+  return type(v) == "table" and v[1] or v
+end
+
+-- Self-localizing rank names: when a fish's rank is known from the score cutoffs,
+-- the word on its rank line IS this locale's name for that rank. Learn it once
+-- (persisted per locale), but only from scores a safe distance from the
+-- provisional cutoffs so an off-by-a-little estimate can't mislabel a rank.
+local function learnRankWord(info)
+  if not (info and info.rank and info.rankLine and info.score > 0) then return end
+  local cache = BrinyBestDB and BrinyBestDB.rankWordCache
+  if not cache then return end
+  local loc = GetLocale()
+  cache[loc] = cache[loc] or {}
+  if cache[loc][info.rank] then return end
+  for _, rname in ipairs(RANK_ORDER) do
+    local cut = RANK_CUTOFFS[rname]
+    if cut and cut.est and math.abs(info.score - cut.score) < 1.5 then return end
+  end
+  local word = info.rankLine:gsub("^[%s:：]+", ""):gsub("%s*[%(（].*$", "")
+  word = stripTrailing(word)
+  if word ~= "" and #word < 40 then cache[loc][info.rank] = word end
+end
+
+local function rankDisplay(rank)
+  local cache = BrinyBestDB and BrinyBestDB.rankWordCache
+  local words = cache and cache[GetLocale()]
+  return (words and words[rank]) or rank
+end
+
 local ROW_HEIGHT = 15
 local FRAME_WIDTH = 320
 
@@ -387,6 +417,218 @@ end
 -- Ula'tek Snakehead is an ordinary Coiled Isle pool/open-water fish. The vaults
 -- inherit the isle's loot table via the parent-map walk, so no fish needs to list
 -- the vaults except the Stargorger, which is exclusive to them.
+
+-- ---------------------------------------------------------------- UI strings
+-- The addon's own text (Blizzard's labels are reused from LOCALE_PARSE where they
+-- exist; rank names self-localize via the learned rank-word cache). Translations
+-- below are maintainer-written — corrections from native speakers welcome via
+-- GitHub issues.
+local L_ALL = {
+  enUS = {
+    WARBAND = "Warband Anglin' Score",
+    ZONE = "Zone", TOTAL = "Total", TROPHIES = "Trophies",
+    TROPHY_HIDDEN = "(%d Trophy hidden)",
+    NO_FISH = "No Midnight fish recorded for this zone.",
+    IMPROVE = "Improvement opportunities", TARGET_AVG = "(target %.1f%% avg)",
+    LEFT_FMT = "%.0f left",
+    TAG_OPEN = "open", TAG_POOL = "pool", TAG_POOL_ONLY = "pool only", TAG_EITHER = "either",
+    LEGEND_SUFFIX = "shows where catch rates are best",
+    NO_SCORE_TT = "No Anglin' Score — this catch has no rank system and does not count toward zone or achievement points.",
+    NOT_CAUGHT = "not caught yet",
+    NEXT_RANK = "Next rank: %s at %s — %.1f points to go",
+    ALL_FISH_TT = "All fish can be caught in open water or pools; the tag shows the better rate.",
+    NOTE_STARGORGER = "Requires its special lure (reputation reward) — works in %s and on normal pools around %s.",
+    NOTE_SNAKEHEAD = "No lure required, but one definitely helps — caught in pools and open water around %s.",
+    SET_SHOW_ALL = "Show all fish (ignore zone)", SET_HIDE_TROPHY = "Hide Trophy-rank fish",
+    SET_ONLY_ZONES = "Only show in fishing zones", SETTINGS = "Settings", ALL_FISH = "All fish",
+    IMPROVED = "Improved %s: %s → %s", REACHED = " — reached %s rank!",
+    TROPHY_CHAT = "TROPHY! %s is at max rank!", BANKED = "— 100 points banked!",
+  },
+  frFR = {
+    WARBAND = "Score de pêche du bataillon",
+    ZONE = "Zone", TOTAL = "Total", TROPHIES = "Trophées",
+    TROPHY_HIDDEN = "(%d trophées masqués)",
+    NO_FISH = "Aucun poisson de Midnight enregistré pour cette zone.",
+    IMPROVE = "Opportunités d’amélioration", TARGET_AVG = "(objectif : %.1f%% de moyenne)",
+    LEFT_FMT = "%.0f restants",
+    TAG_OPEN = "eau libre", TAG_POOL = "banc", TAG_POOL_ONLY = "banc uniquement", TAG_EITHER = "les deux",
+    LEGEND_SUFFIX = "indiquent le meilleur taux de capture",
+    NO_SCORE_TT = "Pas de score de pêche — cette prise n’a ni rang ni points et ne compte ni pour la zone ni pour le haut fait.",
+    NOT_CAUGHT = "pas encore pêché",
+    NEXT_RANK = "Rang suivant : %s à %s — %.1f points restants",
+    ALL_FISH_TT = "Tous les poissons peuvent être pêchés en eau libre ou dans les bancs ; l’étiquette indique le meilleur taux.",
+    NOTE_STARGORGER = "Nécessite son leurre spécial (récompense de réputation) — fonctionne dans %s et sur les bancs normaux autour de %s.",
+    NOTE_SNAKEHEAD = "Aucun leurre requis, mais il aide beaucoup — se pêche dans les bancs et en eau libre autour de %s.",
+    SET_SHOW_ALL = "Afficher tous les poissons (ignorer la zone)", SET_HIDE_TROPHY = "Masquer les poissons au rang Trophée",
+    SET_ONLY_ZONES = "Afficher uniquement dans les zones de pêche", SETTINGS = "Paramètres", ALL_FISH = "Tous les poissons",
+    IMPROVED = "%s amélioré : %s → %s", REACHED = " — rang %s atteint !",
+    TROPHY_CHAT = "TROPHÉE ! %s est au rang maximum !", BANKED = "— 100 points engrangés !",
+  },
+  deDE = {
+    WARBAND = "Angelwertung der Kriegsmeute",
+    ZONE = "Zone", TOTAL = "Gesamt", TROPHIES = "Trophäen",
+    TROPHY_HIDDEN = "(%d Trophäen ausgeblendet)",
+    NO_FISH = "Keine Midnight-Fische für diese Zone erfasst.",
+    IMPROVE = "Verbesserungsmöglichkeiten", TARGET_AVG = "(Ziel: %.1f%% Durchschnitt)",
+    LEFT_FMT = "%.0f übrig",
+    TAG_OPEN = "offen", TAG_POOL = "Schwarm", TAG_POOL_ONLY = "nur Schwarm", TAG_EITHER = "beides",
+    LEGEND_SUFFIX = "zeigen die besten Fangraten",
+    NO_SCORE_TT = "Keine Angelwertung — dieser Fang hat kein Rangsystem und zählt nicht für Zonen- oder Erfolgspunkte.",
+    NOT_CAUGHT = "noch nicht gefangen",
+    NEXT_RANK = "Nächster Rang: %s bei %s — noch %.1f Punkte",
+    ALL_FISH_TT = "Alle Fische können im offenen Gewässer oder in Schwärmen gefangen werden; das Etikett zeigt die bessere Rate.",
+    NOTE_STARGORGER = "Benötigt seinen besonderen Köder (Rufbelohnung) — funktioniert in %s und an normalen Schwärmen rund um %s.",
+    NOTE_SNAKEHEAD = "Kein Köder nötig, hilft aber deutlich — wird in Schwärmen und offenem Gewässer rund um %s gefangen.",
+    SET_SHOW_ALL = "Alle Fische anzeigen (Zone ignorieren)", SET_HIDE_TROPHY = "Fische mit Trophäenrang ausblenden",
+    SET_ONLY_ZONES = "Nur in Angelzonen anzeigen", SETTINGS = "Einstellungen", ALL_FISH = "Alle Fische",
+    IMPROVED = "%s verbessert: %s → %s", REACHED = " — Rang %s erreicht!",
+    TROPHY_CHAT = "TROPHÄE! %s hat den Höchstrang!", BANKED = "— 100 Punkte gesichert!",
+  },
+  esES = {
+    WARBAND = "Puntuación de pesca de la banda guerrera",
+    ZONE = "Zona", TOTAL = "Total", TROPHIES = "Trofeos",
+    TROPHY_HIDDEN = "(%d trofeos ocultos)",
+    NO_FISH = "No hay peces de Midnight registrados en esta zona.",
+    IMPROVE = "Oportunidades de mejora", TARGET_AVG = "(objetivo: %.1f%% de media)",
+    LEFT_FMT = "faltan %.0f",
+    TAG_OPEN = "mar abierto", TAG_POOL = "estanque", TAG_POOL_ONLY = "solo estanque", TAG_EITHER = "ambos",
+    LEGEND_SUFFIX = "indican la mejor tasa de captura",
+    NO_SCORE_TT = "Sin puntuación de pesca — esta captura no tiene rangos ni puntos y no cuenta para la zona ni el logro.",
+    NOT_CAUGHT = "sin pescar aún",
+    NEXT_RANK = "Siguiente rango: %s a %s — faltan %.1f puntos",
+    ALL_FISH_TT = "Todos los peces pueden pescarse en mar abierto o en estanques; la etiqueta indica la mejor tasa.",
+    NOTE_STARGORGER = "Requiere su señuelo especial (recompensa de reputación) — funciona en %s y en los estanques normales alrededor de %s.",
+    NOTE_SNAKEHEAD = "No requiere señuelo, pero ayuda bastante — se pesca en estanques y mar abierto alrededor de %s.",
+    SET_SHOW_ALL = "Mostrar todos los peces (ignorar zona)", SET_HIDE_TROPHY = "Ocultar peces con rango Trofeo",
+    SET_ONLY_ZONES = "Mostrar solo en zonas de pesca", SETTINGS = "Ajustes", ALL_FISH = "Todos los peces",
+    IMPROVED = "%s mejorado: %s → %s", REACHED = " — ¡rango %s alcanzado!",
+    TROPHY_CHAT = "¡TROFEO! ¡%s está al rango máximo!", BANKED = "— ¡100 puntos asegurados!",
+  },
+  itIT = {
+    WARBAND = "Punteggio di Pesca della banda",
+    ZONE = "Zona", TOTAL = "Totale", TROPHIES = "Trofei",
+    TROPHY_HIDDEN = "(%d trofei nascosti)",
+    NO_FISH = "Nessun pesce di Midnight registrato per questa zona.",
+    IMPROVE = "Opportunità di miglioramento", TARGET_AVG = "(obiettivo: %.1f%% di media)",
+    LEFT_FMT = "%.0f mancanti",
+    TAG_OPEN = "mare aperto", TAG_POOL = "pozza", TAG_POOL_ONLY = "solo pozza", TAG_EITHER = "entrambi",
+    LEGEND_SUFFIX = "indicano la probabilità di cattura migliore",
+    NO_SCORE_TT = "Nessun Punteggio di Pesca — questa cattura non ha gradi né punti e non conta per la zona o l'impresa.",
+    NOT_CAUGHT = "non ancora pescato",
+    NEXT_RANK = "Grado successivo: %s a %s — %.1f punti mancanti",
+    ALL_FISH_TT = "Tutti i pesci si possono pescare in mare aperto o nelle pozze; l'etichetta indica la probabilità migliore.",
+    NOTE_STARGORGER = "Richiede la sua esca speciale (ricompensa di reputazione) — funziona in %s e nelle pozze normali attorno a %s.",
+    NOTE_SNAKEHEAD = "Nessuna esca richiesta, ma aiuta molto — si pesca nelle pozze e in mare aperto attorno a %s.",
+    SET_SHOW_ALL = "Mostra tutti i pesci (ignora la zona)", SET_HIDE_TROPHY = "Nascondi i pesci di grado Trofeo",
+    SET_ONLY_ZONES = "Mostra solo nelle zone di pesca", SETTINGS = "Impostazioni", ALL_FISH = "Tutti i pesci",
+    IMPROVED = "%s migliorato: %s → %s", REACHED = " — grado %s raggiunto!",
+    TROPHY_CHAT = "TROFEO! %s è al grado massimo!", BANKED = "— 100 punti assicurati!",
+  },
+  ptBR = {
+    WARBAND = "Pontuação de pescaria do bando de guerra",
+    ZONE = "Zona", TOTAL = "Total", TROPHIES = "Troféus",
+    TROPHY_HIDDEN = "(%d troféus ocultos)",
+    NO_FISH = "Nenhum peixe de Midnight registrado nesta zona.",
+    IMPROVE = "Oportunidades de melhoria", TARGET_AVG = "(meta: %.1f%% de média)",
+    LEFT_FMT = "faltam %.0f",
+    TAG_OPEN = "águas abertas", TAG_POOL = "pesqueiro", TAG_POOL_ONLY = "só pesqueiro", TAG_EITHER = "ambos",
+    LEGEND_SUFFIX = "indicam a melhor taxa de captura",
+    NO_SCORE_TT = "Sem pontuação de pescaria — esta captura não tem graus nem pontos e não conta para a zona nem a conquista.",
+    NOT_CAUGHT = "ainda não pescado",
+    NEXT_RANK = "Próximo grau: %s em %s — faltam %.1f pontos",
+    ALL_FISH_TT = "Todos os peixes podem ser pescados em águas abertas ou pesqueiros; a etiqueta indica a melhor taxa.",
+    NOTE_STARGORGER = "Requer sua isca especial (recompensa de reputação) — funciona em %s e nos pesqueiros normais ao redor de %s.",
+    NOTE_SNAKEHEAD = "Nenhuma isca necessária, mas ajuda bastante — pescado em pesqueiros e águas abertas ao redor de %s.",
+    SET_SHOW_ALL = "Mostrar todos os peixes (ignorar zona)", SET_HIDE_TROPHY = "Ocultar peixes de grau Troféu",
+    SET_ONLY_ZONES = "Mostrar apenas em zonas de pesca", SETTINGS = "Configurações", ALL_FISH = "Todos os peixes",
+    IMPROVED = "%s melhorado: %s → %s", REACHED = " — grau %s alcançado!",
+    TROPHY_CHAT = "TROFÉU! %s está no grau máximo!", BANKED = "— 100 pontos garantidos!",
+  },
+  ruRU = {
+    WARBAND = "Счет рыбалки отряда",
+    ZONE = "Зона", TOTAL = "Всего", TROPHIES = "Трофеи",
+    TROPHY_HIDDEN = "(скрыто трофеев: %d)",
+    NO_FISH = "В этой зоне нет рыбы Midnight.",
+    IMPROVE = "Возможности улучшения", TARGET_AVG = "(цель: в среднем %.1f%%)",
+    LEFT_FMT = "осталось %.0f",
+    TAG_OPEN = "открытая вода", TAG_POOL = "косяк", TAG_POOL_ONLY = "только косяк", TAG_EITHER = "оба",
+    LEGEND_SUFFIX = "показывают лучший шанс поимки",
+    NO_SCORE_TT = "Нет счета рыбалки — этот улов не имеет уровней и очков и не идет в зачет зоны или достижения.",
+    NOT_CAUGHT = "еще не поймана",
+    NEXT_RANK = "Следующий уровень: %s при %s — осталось %.1f очков",
+    ALL_FISH_TT = "Любую рыбу можно поймать в открытой воде или в косяках; метка показывает лучший шанс.",
+    NOTE_STARGORGER = "Требуется особая наживка (награда за репутацию) — работает в %s и на обычных косяках вокруг %s.",
+    NOTE_SNAKEHEAD = "Наживка не требуется, но заметно помогает — ловится в косяках и открытой воде вокруг %s.",
+    SET_SHOW_ALL = "Показывать всю рыбу (без учета зоны)", SET_HIDE_TROPHY = "Скрывать рыбу уровня «Трофей»",
+    SET_ONLY_ZONES = "Показывать только в рыболовных зонах", SETTINGS = "Настройки", ALL_FISH = "Вся рыба",
+    IMPROVED = "Улучшено: %s — %s → %s", REACHED = " — достигнут уровень %s!",
+    TROPHY_CHAT = "ТРОФЕЙ! %s достигла максимального уровня!", BANKED = "— 100 очков в копилке!",
+  },
+  koKR = {
+    WARBAND = "전투부대 강태공 점수",
+    ZONE = "지역", TOTAL = "전체", TROPHIES = "트로피",
+    TROPHY_HIDDEN = "(트로피 %d마리 숨김)",
+    NO_FISH = "이 지역에는 기록된 한밤 물고기가 없습니다.",
+    IMPROVE = "개선 기회", TARGET_AVG = "(목표: 평균 %.1f%%)",
+    LEFT_FMT = "%.0f 남음",
+    TAG_OPEN = "개방 수역", TAG_POOL = "웅덩이", TAG_POOL_ONLY = "웅덩이 전용", TAG_EITHER = "둘 다",
+    LEGEND_SUFFIX = "표시는 더 좋은 확률을 나타냅니다",
+    NO_SCORE_TT = "강태공 점수 없음 — 이 어획물은 등급과 점수가 없으며 지역 및 업적 점수에 포함되지 않습니다.",
+    NOT_CAUGHT = "아직 잡지 못함",
+    NEXT_RANK = "다음 등급: %s (%s) — %.1f점 남음",
+    ALL_FISH_TT = "모든 물고기는 개방 수역이나 웅덩이에서 잡을 수 있으며, 표시는 더 좋은 확률을 나타냅니다.",
+    NOTE_STARGORGER = "전용 미끼(평판 보상)가 필요합니다 — %s와(과) %s 주변의 일반 웅덩이에서 사용할 수 있습니다.",
+    NOTE_SNAKEHEAD = "미끼는 필요 없지만 큰 도움이 됩니다 — %s 주변의 웅덩이와 개방 수역에서 잡힙니다.",
+    SET_SHOW_ALL = "모든 물고기 표시 (지역 무시)", SET_HIDE_TROPHY = "트로피 등급 물고기 숨기기",
+    SET_ONLY_ZONES = "낚시 지역에서만 표시", SETTINGS = "설정", ALL_FISH = "모든 물고기",
+    IMPROVED = "%s 향상: %s → %s", REACHED = " — %s 등급 달성!",
+    TROPHY_CHAT = "트로피! %s이(가) 최고 등급입니다!", BANKED = "— 100점 확보!",
+  },
+  zhCN = {
+    WARBAND = "战团钓鱼得分",
+    ZONE = "区域", TOTAL = "总计", TROPHIES = "奖杯",
+    TROPHY_HIDDEN = "（已隐藏%d条奖杯鱼）",
+    NO_FISH = "该区域没有记录的至暗之夜鱼类。",
+    IMPROVE = "提升机会", TARGET_AVG = "（目标：平均%.1f%%）",
+    LEFT_FMT = "还差%.0f",
+    TAG_OPEN = "开阔水域", TAG_POOL = "鱼群", TAG_POOL_ONLY = "仅鱼群", TAG_EITHER = "均可",
+    LEGEND_SUFFIX = "标签显示更高的捕获几率",
+    NO_SCORE_TT = "没有钓鱼得分——该渔获没有等级和分数，不计入区域或成就分数。",
+    NOT_CAUGHT = "尚未捕获",
+    NEXT_RANK = "下一等级：%s（%s）——还差%.1f分",
+    ALL_FISH_TT = "所有鱼都可以在开阔水域或鱼群中捕获；标签显示更高的几率。",
+    NOTE_STARGORGER = "需要专用鱼饵（声望奖励）——可在%s以及%s周围的普通鱼群使用。",
+    NOTE_SNAKEHEAD = "无需鱼饵，但鱼饵会有很大帮助——在%s周围的鱼群和开阔水域捕获。",
+    SET_SHOW_ALL = "显示所有鱼（忽略区域）", SET_HIDE_TROPHY = "隐藏奖杯等级的鱼",
+    SET_ONLY_ZONES = "仅在钓鱼区域显示", SETTINGS = "设置", ALL_FISH = "所有鱼",
+    IMPROVED = "%s提升：%s → %s", REACHED = "——达到%s等级！",
+    TROPHY_CHAT = "奖杯！%s已达最高等级！", BANKED = "——已收入100分！",
+  },
+  zhTW = {
+    WARBAND = "戰隊釣魚分數",
+    ZONE = "區域", TOTAL = "總計", TROPHIES = "獎盃",
+    TROPHY_HIDDEN = "（已隱藏%d條獎盃魚）",
+    NO_FISH = "此區域沒有記錄的至暗之夜魚類。",
+    IMPROVE = "提升機會", TARGET_AVG = "（目標：平均%.1f%%）",
+    LEFT_FMT = "還差%.0f",
+    TAG_OPEN = "開放水域", TAG_POOL = "魚群", TAG_POOL_ONLY = "僅魚群", TAG_EITHER = "皆可",
+    LEGEND_SUFFIX = "標籤顯示更高的捕獲機率",
+    NO_SCORE_TT = "沒有釣魚分數——該漁獲沒有等級和分數，不計入區域或成就分數。",
+    NOT_CAUGHT = "尚未捕獲",
+    NEXT_RANK = "下一等級：%s（%s）——還差%.1f分",
+    ALL_FISH_TT = "所有魚都可以在開放水域或魚群中捕獲；標籤顯示更高的機率。",
+    NOTE_STARGORGER = "需要專用魚餌（聲望獎勵）——可在%s以及%s周圍的普通魚群使用。",
+    NOTE_SNAKEHEAD = "無需魚餌，但魚餌會有很大幫助——在%s周圍的魚群和開放水域捕獲。",
+    SET_SHOW_ALL = "顯示所有魚（忽略區域）", SET_HIDE_TROPHY = "隱藏獎盃等級的魚",
+    SET_ONLY_ZONES = "僅在釣魚區域顯示", SETTINGS = "設定", ALL_FISH = "所有魚",
+    IMPROVED = "%s提升：%s → %s", REACHED = "——達到%s等級！",
+    TROPHY_CHAT = "獎盃！%s已達最高等級！", BANKED = "——已收入100分！",
+  },
+}
+L_ALL.enGB = L_ALL.enUS
+L_ALL.esMX = setmetatable({ WARBAND = "Puntaje de pesca de la banda guerrera" }, { __index = L_ALL.esES })
+local L = setmetatable(L_ALL[GetLocale()] or {}, { __index = L_ALL.enUS })
+
 -- The two real zones the garbled names refer to, as locale-independent UiMapIDs
 -- (verified in-game Aug 20: 2512 = The Coiled Isle, 2509 = Vaults of Atal'Utek).
 -- The client resolves the localized zone name itself, so one correction table
@@ -447,10 +689,13 @@ end
 -- the Ula'tek Snakehead's description falsely claims a lure requirement (it also
 -- calls the vaults "Temple of Ula'tek" — a third name for the same place). A note
 -- here replaces the generic disclaimer line in that fish's tooltip.
-local FISH_NOTES = {
-  [1295408] = "Requires the Coiled Stargorger Lure (reputation-locked) — works in the Vaults of Atal'Utek and on normal pools around The Coiled Isle.", -- Coiled Stargorger
-  [1295406] = "No lure required, but one definitely helps — caught in pools and open water around The Coiled Isle.", -- Ula'tek Snakehead
-}
+local function fishNote(id)
+  if id == 1295408 then -- Coiled Stargorger
+    return L.NOTE_STARGORGER:format(mapName(MAP_VAULTS, "Vaults of Atal'Utek"), mapName(MAP_ISLE, "The Coiled Isle"))
+  elseif id == 1295406 then -- Ula'tek Snakehead
+    return L.NOTE_SNAKEHEAD:format(mapName(MAP_ISLE, "The Coiled Isle"))
+  end
+end
 
 -- Blizzard rate lines too wrong to show (e.g. the Snakehead's phantom lure requirement)
 local FISH_HIDE_RATES = {
@@ -564,13 +809,13 @@ end
 
 local function sourceSuffix(info)
   if info.bias == "open" then
-    return " |cff69ccf0(open)|r"
+    return (" |cff69ccf0(%s)|r"):format(L.TAG_OPEN)
   elseif info.bias == "pools" then
-    return " |cffffcc00(pool)|r"
+    return (" |cffffcc00(%s)|r"):format(L.TAG_POOL)
   elseif info.bias == "poolsonly" then
-    return " |cffff7f3f(pool only)|r"
+    return (" |cffff7f3f(%s)|r"):format(L.TAG_POOL_ONLY)
   elseif info.bias == "both" then
-    return " |cff1eff00(either)|r"
+    return (" |cff1eff00(%s)|r"):format(L.TAG_EITHER)
   end
   return ""
 end
@@ -682,14 +927,14 @@ end
 local function celebrate(info)
   local t = ensureToast()
   if info.icon then t.icon:SetTexture(info.icon) end
-  t.fish:SetText(coloredName(info) .. " |cffffd100— 100 points banked!|r")
+  t.fish:SetText(coloredName(info) .. (" |cffffd100%s|r"):format(L.BANKED))
   t.ag:Stop()
   t:Show()
   t:SetAlpha(1)
   t.ag:Play()
   t.sparkAg:Play()
   pcall(PlaySound, SOUNDKIT and (SOUNDKIT.UI_LEGENDARY_LOOT_TOAST or SOUNDKIT.UI_EPICLOOT_TOAST) or 44293)
-  chat(("|cffff8000TROPHY!|r %s is at max rank!"):format(coloredName(info)))
+  chat(L.TROPHY_CHAT:format(coloredName(info)))
 end
 
 local function checkProgress(info)
@@ -708,10 +953,10 @@ local function checkProgress(info)
   if info.score > oldScore + 0.05 then
     local rankNote = ""
     if info.rank and info.rankNum > oldRank and info.rankNum < 5 then
-      rankNote = (" — reached |cff%s%s|r rank!"):format(RANK_HEX[info.rank], info.rank)
+      rankNote = L.REACHED:format(("|cff%s%s|r"):format(RANK_HEX[info.rank], rankDisplay(info.rank)))
     end
-    chat(("Improved %s: |cffffd100%.1f|r → |cffffd100%.1f|r%s"):format(
-      coloredName(info), oldScore, info.score, rankNote))
+    chat(L.IMPROVED:format(coloredName(info),
+      ("|cffffd100%.1f|r"):format(oldScore), ("|cffffd100%.1f|r"):format(info.score)) .. rankNote)
   end
   if info.rankNum >= 5 and oldRank < 5 then
     celebrate(info)
@@ -768,7 +1013,7 @@ footer:SetJustifyH("LEFT")
 
 local zHeader = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
 zHeader:SetJustifyH("LEFT")
-zHeader:SetText("Improvement opportunities:")
+zHeader:SetText(L.IMPROVE .. ":")
 
 local zoneNames = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
 zoneNames:SetJustifyH("LEFT")
@@ -789,7 +1034,7 @@ local zoneLeft = statColumn(-12)
 
 local legend = frame:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
 legend:SetJustifyH("LEFT")
-legend:SetText("|cff69ccf0(open)|r / |cffffcc00(pool)|r / |cff1eff00(either)|r shows where catch rates are best")
+legend:SetText(("|cff69ccf0(%s)|r / |cffffcc00(%s)|r / |cff1eff00(%s)|r %s"):format(L.TAG_OPEN, L.TAG_POOL, L.TAG_EITHER, L.LEGEND_SUFFIX))
 
 local rows = {}
 local function getRow(i)
@@ -813,28 +1058,29 @@ local function getRow(i)
     local r, g, b = unpack(CAT_RGB[info.cat] or CAT_RGB[1])
     GameTooltip:AddLine(info.name, r, g, b)
     if not info.scoreable then
-      GameTooltip:AddLine("No Anglin' Score — this catch has no rank system and does not count toward zone or achievement points.", 0.6, 0.6, 0.6, true)
+      GameTooltip:AddLine(L.NO_SCORE_TT, 0.6, 0.6, 0.6, true)
     else
-      GameTooltip:AddLine(("Anglin' Score: %.1f points"):format(info.score), 1, 1, 1)
+      GameTooltip:AddLine(("%s: %.1f%s"):format(firstAlt(PARSE.scoreLabel), info.score, PARSE.pointsWord and (" " .. PARSE.pointsWord) or ""), 1, 1, 1)
       if info.rank then
-        GameTooltip:AddLine(("Catch Rank: |cff%s%s|r (%d of 5)"):format(RANK_HEX[info.rank], info.rank, info.rankNum), 1, 1, 1)
+        GameTooltip:AddLine(("%s: |cff%s%s|r (%d/5)"):format(firstAlt(PARSE.rankLabel), RANK_HEX[info.rank], rankDisplay(info.rank), info.rankNum), 1, 1, 1)
       else
-        GameTooltip:AddLine("Catch Rank: |cff9d9d9dnot caught yet|r", 1, 1, 1)
+        GameTooltip:AddLine(("%s: |cff9d9d9d%s|r"):format(firstAlt(PARSE.rankLabel), L.NOT_CAUGHT), 1, 1, 1)
       end
       if info.rankNum > 0 and info.rankNum < 5 then
         local nextRank = RANK_ORDER[info.rankNum + 1]
         local cut = RANK_CUTOFFS[nextRank]
-        GameTooltip:AddLine(("Next rank: |cff%s%s|r at %s%d — %.1f points to go"):format(
-          RANK_HEX[nextRank], nextRank, cut.est and "~" or "", cut.score,
+        GameTooltip:AddLine(L.NEXT_RANK:format(
+          ("|cff%s%s|r"):format(RANK_HEX[nextRank], rankDisplay(nextRank)),
+          (cut.est and "~" or "") .. cut.score,
           math.max(0, cut.score - info.score)), 1, 1, 1)
       end
     end
     if info.special then
-      GameTooltip:AddLine("Special: " .. info.special, 0.4, 0.85, 0.4)
+      GameTooltip:AddLine(firstAlt(PARSE.specialHeader) .. ": " .. info.special, 0.4, 0.85, 0.4)
     end
     if #info.pools > 0 then
       GameTooltip:AddLine(" ")
-      GameTooltip:AddLine("Fishing Pools:", 0.4, 0.85, 0.4)
+      GameTooltip:AddLine(firstAlt(PARSE.poolsHeader) .. ":", 0.4, 0.85, 0.4)
       for _, p in ipairs(info.pools) do
         GameTooltip:AddLine("  - " .. p, 1, 1, 1)
       end
@@ -844,11 +1090,11 @@ local function getRow(i)
         GameTooltip:AddLine(rate, 0.8, 0.8, 0.6, true)
       end
     end
-    local note = FISH_NOTES[info.id]
+    local note = fishNote(info.id)
     if note then
       GameTooltip:AddLine(note, 1, 0.55, 0.25, true)
     else
-      GameTooltip:AddLine("All fish can be caught in open water or pools; the tag shows the better rate.", 0.5, 0.5, 0.5, true)
+      GameTooltip:AddLine(L.ALL_FISH_TT, 0.5, 0.5, 0.5, true)
     end
     GameTooltip:Show()
   end)
@@ -893,7 +1139,7 @@ local function render(zoneLabel, list, statsList)
   -- global max computed from fish that actually carry an Anglin' Score line;
   -- fall back to the community-known 2700 while descriptions are still loading
   local globalMax = (pendingLoads == 0 and globalScoreable > 0) and (globalScoreable * 100) or 2700
-  scoreLine:SetText(("Warband Anglin' Score: |cffffd100%s|r / 2500  |cff9d9d9d(%d max)|r"):format(precise, globalMax))
+  scoreLine:SetText((L.WARBAND .. ": |cffffd100%s|r / 2500  |cff9d9d9d(%d max)|r"):format(precise, globalMax))
 
   -- totals come from the unfiltered set so hiding Trophy fish doesn't skew them
   local total, trophies, scoreableCount = 0, 0, 0
@@ -911,7 +1157,7 @@ local function render(zoneLabel, list, statsList)
     local nameCol = ("|cff%s%s|r"):format(CAT_HEX[info.cat] or "ffffff", info.name)
     row.left:SetText(nameCol .. sourceSuffix(info))
     if info.rank then
-      row.right:SetText(("%.1f  |cff%s%s|r"):format(info.score, RANK_HEX[info.rank], info.rank))
+      row.right:SetText(("%.1f  |cff%s%s|r"):format(info.score, RANK_HEX[info.rank], rankDisplay(info.rank)))
     else
       row.right:SetText(("%.1f  |cff9d9d9d—|r"):format(info.score))
     end
@@ -925,16 +1171,16 @@ local function render(zoneLabel, list, statsList)
   if scoreableCount > 0 then
     -- Trophy-rank fish sit at exactly 100.0, so zone max = 100 per scoreable fish
     local s = BrinyBestDB.settings or {}
-    local word = s.showAll and "Total" or "Zone"
-    local hiddenNote = (#list < scoreableCount and s.hideTrophy) and (" |cff9d9d9d(%d Trophy hidden)|r"):format(trophies) or ""
-    footer:SetText(("%s: |cffffd100%.1f|r / %d pts   Trophies: |cffff8000%d|r/%d%s"):format(word, total, scoreableCount * 100, trophies, scoreableCount, hiddenNote))
+    local word = s.showAll and L.TOTAL or L.ZONE
+    local hiddenNote = (#list < scoreableCount and s.hideTrophy) and (" |cff9d9d9d%s|r"):format(L.TROPHY_HIDDEN:format(trophies)) or ""
+    footer:SetText(("%s: |cffffd100%.1f|r / %d pts   " .. L.TROPHIES .. ": |cffff8000%d|r/%d%s"):format(word, total, scoreableCount * 100, trophies, scoreableCount, hiddenNote))
   else
     local s = BrinyBestDB.settings or {}
     if s.locale and globalScoreable == 0 and pendingLoads == 0 then
       -- a parse-language override that matches nothing is almost certainly mismatched
       footer:SetText(("|cffff7f3fNo fish parsed — language override (%s) doesn't match the game's text language. Set it back to Auto.|r"):format(s.locale))
     else
-      footer:SetText("No Midnight fish recorded for this zone.")
+      footer:SetText(L.NO_FISH)
     end
   end
   -- all-zone opportunity summary, biggest missing points first
@@ -956,12 +1202,12 @@ local function render(zoneLabel, list, statsList)
     local pct = z.max > 0 and (z.total / z.max * 100) or 0
     scores[#scores + 1] = ("%.0f / %d"):format(z.total, z.max)
     pcts[#pcts + 1] = ("|cff%s%.0f%%|r"):format(pctColor(pct, targetPct(globalMax)), pct)
-    lefts[#lefts + 1] = ("%.0f left"):format(z.max - z.total)
+    lefts[#lefts + 1] = L.LEFT_FMT:format(z.max - z.total)
   end
   zHeader:ClearAllPoints()
   zHeader:SetPoint("TOPLEFT", footer, "BOTTOMLEFT", 0, -8)
   if #zlist > 0 then
-    zHeader:SetText(("Improvement opportunities |cff9d9d9d(target %.1f%% avg)|r:"):format(targetPct(globalMax)))
+    zHeader:SetText((L.IMPROVE .. " |cff9d9d9d" .. L.TARGET_AVG .. "|r:"):format(targetPct(globalMax)))
   else
     zHeader:SetText("")
   end
@@ -989,6 +1235,7 @@ local function update()
     local info = parseFish(fdef)
     if info then
       checkProgress(info) -- notifications/celebrations fire even while the panel is hidden
+      learnRankWord(info)
       if info.scoreable then
         globalScoreable = globalScoreable + 1
         allList[#allList + 1] = info
@@ -1033,7 +1280,7 @@ local function update()
   local s = BrinyBestDB.settings or {}
   local displayList, label
   if s.showAll then
-    displayList, label = allList, "All fish"
+    displayList, label = allList, L.ALL_FISH
   else
     displayList, label = currentList, GetZoneText() or "?"
   end
@@ -1096,13 +1343,13 @@ local function openSettingsMenu(anchor)
     MenuUtil.CreateContextMenu(anchor, function(_, root)
       local s = BrinyBestDB.settings
       root:CreateTitle("BrinyBest")
-      root:CreateCheckbox("Show all fish (ignore zone)",
+      root:CreateCheckbox(L.SET_SHOW_ALL,
         function() return s.showAll end,
         function() s.showAll = not s.showAll; update() end)
-      root:CreateCheckbox("Hide Trophy-rank fish",
+      root:CreateCheckbox(L.SET_HIDE_TROPHY,
         function() return s.hideTrophy end,
         function() s.hideTrophy = not s.hideTrophy; update() end)
-      root:CreateCheckbox("Only show in fishing zones",
+      root:CreateCheckbox(L.SET_ONLY_ZONES,
         function() return s.onlyAchievementZones ~= false end,
         function() s.onlyAchievementZones = not (s.onlyAchievementZones ~= false); update() end)
       -- parse language intentionally NOT in the menu: Auto is always correct on a
@@ -1123,7 +1370,7 @@ gear:SetHighlightTexture("Interface\\Buttons\\UI-OptionsButton", "ADD")
 gear:SetScript("OnClick", function() openSettingsMenu(gear) end)
 gear:SetScript("OnEnter", function(self)
   GameTooltip:SetOwner(self, "ANCHOR_LEFT")
-  GameTooltip:SetText("Settings")
+  GameTooltip:SetText(L.SETTINGS)
   GameTooltip:Show()
 end)
 gear:SetScript("OnLeave", function() GameTooltip:Hide() end)
@@ -1146,6 +1393,7 @@ events:SetScript("OnEvent", function(_, event, arg1)
   if event == "ADDON_LOADED" and arg1 == "BrinyBest" then
     BrinyBestDB = BrinyBestDB or {}
     BrinyBestDB.settings = BrinyBestDB.settings or {}
+    BrinyBestDB.rankWordCache = BrinyBestDB.rankWordCache or {}
     if BrinyBestDB.settings.locale then
       setParseLocale(BrinyBestDB.settings.locale)
     end
