@@ -236,8 +236,33 @@ SlashCmdList.BRINYBESTTEST = function(msg)
     showCopy(table.concat(out, "\n"))
     chat(("%d fish observed (ranges persist across sessions) — Cmd+C to copy"):format(#lines))
 
+  elseif cmd == "desc" then
+    local target = tonumber(rest)
+    local out = {}
+    for _, fd in ipairs(BrinyBest.fish) do
+      local info = BrinyBest.ParseFish(fd)
+      local name = (info and info.name) or ("spell " .. fd.id)
+      local match
+      if target then
+        match = fd.id == target
+      elseif rest ~= "" then
+        match = name:lower():find(rest:lower(), 1, true) ~= nil
+      end
+      if match then
+        out[#out + 1] = ("===== %d %s (parsed score=%.1f rank=%s)"):format(
+          fd.id, name, info and info.score or -1, info and tostring(info.rank) or "?")
+        out[#out + 1] = C_Spell.GetSpellDescription(fd.id) or "(no description)"
+        out[#out + 1] = ""
+      end
+    end
+    if #out == 0 then
+      chat("no match — /bbtest desc <name fragment or spellID>")
+    else
+      showCopy(table.concat(out, "\n"))
+    end
+
   else
-    chat("commands: /bbtest improve [name] | /bbtest trophy [name] | /bbtest fake | /bbtest list [copy] | /bbtest ranks")
+    chat("commands: /bbtest improve [name] | /bbtest trophy [name] | /bbtest fake | /bbtest list [copy] | /bbtest ranks | /bbtest desc <fish>")
   end
 end
 
