@@ -387,21 +387,52 @@ end
 -- Ula'tek Snakehead is an ordinary Coiled Isle pool/open-water fish. The vaults
 -- inherit the isle's loot table via the parent-map walk, so no fish needs to list
 -- the vaults except the Stargorger, which is exclusive to them.
--- Keyed by raw (pre-normalization) description strings per locale; localized real
--- zone names verified against Wowhead zone pages 16535/16365.
-local AREA_CORRECTIONS_BY_LOCALE = {
-  enUS = {
-    -- Stargorger lists both: lure-caught in the vaults AND on normal isle pools
-    ["Atal'Utek"] = { "Vaults of Atal'Utek", "The Coiled Isle" },
-    ["Vaults of Ula'tek"] = { "The Coiled Isle" },
-  },
-  frFR = {
-    ["Atal’Utek"] = { "Caveaux d’Atal’Utek", "Île Annelée" },
-    ["caveaux d’Ula’tek"] = { "Île Annelée" },
-  },
+-- The two real zones the garbled names refer to, as locale-independent UiMapIDs
+-- (verified in-game Aug 20: 2512 = The Coiled Isle, 2509 = Vaults of Atal'Utek).
+-- The client resolves the localized zone name itself, so one correction table
+-- serves every language.
+local MAP_ISLE, MAP_VAULTS = 2512, 2509
+
+local function mapName(id, fallback)
+  local mi = C_Map.GetMapInfo(id)
+  return (mi and mi.name) or fallback
+end
+
+-- Raw garbled area strings as each locale's fish descriptions actually write them
+-- (harvested from live clients + Wowhead tooltip data for all 11 languages).
+-- Stargorger's "Atal'Utek" variants → vaults + isle (lure works in both);
+-- Snakehead's phantom vault variants → isle only (it's an ordinary isle fish).
+local VAULTS_AND_ISLE = { vaults = true, isle = true }
+local ISLE_ONLY = { isle = true }
+local GARBLED_AREAS = {
+  ["Atal'Utek"] = VAULTS_AND_ISLE,    -- enUS/deDE/esES/esMX/ptBR
+  ["Atal'utek"] = VAULTS_AND_ISLE,    -- itIT
+  ["Atal\226\128\153Utek"] = VAULTS_AND_ISLE, -- frFR (curly apostrophe)
+  ["\236\149\132\237\131\136\236\154\176\237\133\141"] = VAULTS_AND_ISLE, -- koKR 아탈우텍
+  ["\208\144\209\130\208\176\208\187'\208\163\209\130\208\181\208\186"] = VAULTS_AND_ISLE, -- ruRU Атал'Утек
+  ["\233\152\191\229\161\148\228\185\140\231\137\185\229\133\139"] = VAULTS_AND_ISLE, -- zhCN 阿塔乌特克
+  ["\233\152\191\229\161\148\231\131\143\231\137\185\229\133\139"] = VAULTS_AND_ISLE, -- zhTW 阿塔烏特克
+  ["Vaults of Ula'tek"] = ISLE_ONLY,
+  ["Gew\195\182lbe von Ula'tek"] = ISLE_ONLY,   -- deDE
+  ["caveaux d\226\128\153Ula\226\128\153tek"] = ISLE_ONLY, -- frFR
+  ["C\195\161maras de Ula'tek"] = ISLE_ONLY,    -- esES
+  ["B\195\179vedas de Ula'tek"] = ISLE_ONLY,    -- esMX
+  ["Segrete di Ula'tek"] = ISLE_ONLY,             -- itIT
+  ["\236\154\184\235\157\188\237\133\141 \234\184\136\234\179\160"] = ISLE_ONLY, -- koKR 울라텍 금고
+  ["C\195\162maras de Ula'tek"] = ISLE_ONLY,    -- ptBR
+  ["\208\165\209\128\208\176\208\189\208\184\208\187\208\184\209\137\208\176 \208\163\208\187\208\176'\209\130\208\181\208\186"] = ISLE_ONLY, -- ruRU Хранилища Ула'тек
+  ["\228\185\140\230\139\137\231\137\185\229\133\139\229\156\176\231\170\159"] = ISLE_ONLY, -- zhCN 乌拉特克地窟
+  ["\231\131\143\230\139\137\231\137\185\229\133\139\229\175\182\229\186\171"] = ISLE_ONLY, -- zhTW 烏拉特克寶庫
 }
-AREA_CORRECTIONS_BY_LOCALE.enGB = AREA_CORRECTIONS_BY_LOCALE.enUS
-local AREA_CORRECTIONS = AREA_CORRECTIONS_BY_LOCALE[GetLocale()] or {}
+
+local function correctedAreas(a)
+  local g = GARBLED_AREAS[a]
+  if not g then return nil end
+  local out = {}
+  if g.vaults then out[#out + 1] = mapName(MAP_VAULTS, "Vaults of Atal'Utek") end
+  if g.isle then out[#out + 1] = mapName(MAP_ISLE, "The Coiled Isle") end
+  return out
+end
 
 -- settings can override which locale's parse strings are used (mainly a debugging
 -- aid — the parse language must match the client's actual journal text to work)
@@ -409,7 +440,6 @@ local function setParseLocale(override)
   local eff = override or GetLocale()
   untranslatedLocale = (not LOCALE_PARSE[eff]) and eff or nil
   PARSE = LOCALE_PARSE[eff] or LOCALE_PARSE.enUS
-  AREA_CORRECTIONS = AREA_CORRECTIONS_BY_LOCALE[eff] or {}
 end
 
 -- Exceptions to the generic "any fish, open water or pools" rule, verified in-game
@@ -505,7 +535,7 @@ local function parseFish(fdef)
 
   local corrected, seenArea = {}, {}
   for _, a in ipairs(info.areas) do
-    for _, r in ipairs(AREA_CORRECTIONS[a] or { a }) do
+    for _, r in ipairs(correctedAreas(a) or { a }) do
       if not seenArea[r] then
         seenArea[r] = true
         corrected[#corrected + 1] = r
