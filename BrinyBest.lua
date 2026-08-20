@@ -329,6 +329,15 @@ local AREA_CORRECTIONS_BY_LOCALE = {
 AREA_CORRECTIONS_BY_LOCALE.enGB = AREA_CORRECTIONS_BY_LOCALE.enUS
 local AREA_CORRECTIONS = AREA_CORRECTIONS_BY_LOCALE[GetLocale()] or {}
 
+-- settings can override which locale's parse strings are used (mainly a debugging
+-- aid — the parse language must match the client's actual journal text to work)
+local function setParseLocale(override)
+  local eff = override or GetLocale()
+  untranslatedLocale = (not LOCALE_PARSE[eff]) and eff or nil
+  PARSE = LOCALE_PARSE[eff] or LOCALE_PARSE.enUS
+  AREA_CORRECTIONS = AREA_CORRECTIONS_BY_LOCALE[eff] or {}
+end
+
 -- Exceptions to the generic "any fish, open water or pools" rule, verified in-game
 -- 2026-08-16: the Coiled Stargorger never bites without its rep-locked lure, while
 -- the Ula'tek Snakehead's description falsely claims a lure requirement (it also
@@ -766,7 +775,7 @@ local function requestSpellData()
   pcall(C_Spell.RequestLoadSpellData, SCORE_SPELL)
 end
 
-local function render(zoneLabel, list)
+local function render(zoneLabel, list, statsList)
   title:SetText("BrinyBest — " .. zoneLabel)
   local precise, critQty = warbandScore()
   -- global max computed from fish that actually carry an Anglin' Score line;
@@ -774,7 +783,15 @@ local function render(zoneLabel, list)
   local globalMax = (pendingLoads == 0 and globalScoreable > 0) and (globalScoreable * 100) or 2700
   scoreLine:SetText(("Warband Anglin' Score: |cffffd100%s|r / 2500  |cff9d9d9d(%d max)|r"):format(precise, globalMax))
 
+  -- totals come from the unfiltered set so hiding Trophy fish doesn't skew them
   local total, trophies, scoreableCount = 0, 0, 0
+  for _, info in ipairs(statsList or list) do
+    if info.scoreable then
+      scoreableCount = scoreableCount + 1
+      total = total + info.score
+      if info.rankNum >= 5 then trophies = trophies + 1 end
+    end
+  end
   for i, info in ipairs(list) do
     local row = getRow(i)
     row:ClearAllPoints()
@@ -788,11 +805,6 @@ local function render(zoneLabel, list)
     end
     row.info = info
     row:Show()
-    if info.scoreable then
-      scoreableCount = scoreableCount + 1
-      total = total + info.score
-      if info.rankNum >= 5 then trophies = trophies + 1 end
-    end
   end
   for i = #list + 1, #rows do rows[i]:Hide() end
 
@@ -800,7 +812,10 @@ local function render(zoneLabel, list)
   footer:SetPoint("TOPLEFT", 10, -42 - #list * ROW_HEIGHT)
   if scoreableCount > 0 then
     -- Trophy-rank fish sit at exactly 100.0, so zone max = 100 per scoreable fish
-    footer:SetText(("Zone: |cffffd100%.1f|r / %d pts   Trophies: |cffff8000%d|r/%d"):format(total, scoreableCount * 100, trophies, scoreableCount))
+    local s = BrinyBestDB.settings or {}
+    local word = s.showAll and "Total" or "Zone"
+    local hiddenNote = (#list < scoreableCount and s.hideTrophy) and (" |cff9d9d9d(%d Trophy hidden)|r"):format(trophies) or ""
+    footer:SetText(("%s: |cffffd100%.1f|r / %d pts   Trophies: |cffff8000%d|r/%d%s"):format(word, total, scoreableCount * 100, trophies, scoreableCount, hiddenNote))
   else
     footer:SetText("No Midnight fish recorded for this zone.")
   end
@@ -849,6 +864,7 @@ local function update()
   wipe(zoneAgg)
   pendingLoads = 0
   globalScoreable = 0
+  local allList = {}
 
   for _, fdef in ipairs(FISH) do
     local info = parseFish(fdef)
@@ -856,6 +872,7 @@ local function update()
       checkProgress(info) -- notifications/celebrations fire even while the panel is hidden
       if info.scoreable then
         globalScoreable = globalScoreable + 1
+        allList[#allList + 1] = info
       end
       local inZone = false
       for _, area in ipairs(info.areas) do
@@ -875,20 +892,43 @@ local function update()
       pendingLoads = pendingLoads + 1
     end
   end
-  table.sort(currentList, function(a, b)
+  local s = BrinyBestDB.settings or {}
+  local displayList, label
+  if s.showAll then
+    displayList, label = allList, "All fish"
+  else
+    displayList, label = currentList, GetZoneText() or "?"
+  end
+  table.sort(displayList, function(a, b)
     if a.score ~= b.score then return a.score > b.score end
     return a.name < b.name
   end)
+  local statsList = displayList
+  if s.hideTrophy then
+    local kept = {}
+    for _, info in ipairs(displayList) do
+      if info.rankNum < 5 then kept[#kept + 1] = info end
+    end
+    displayList = kept
+  end
 
   if BrinyBestDB.hidden or sessionHidden then
     frame:Hide()
     return
   end
-  if #currentList == 0 and not frame.manualShow then
-    frame:Hide()
-    return
+  local inFishZone = #currentList > 0
+  if not frame.manualShow then
+    -- default on: the panel only appears where Midnight fish are recorded
+    if s.onlyAchievementZones ~= false and not inFishZone then
+      frame:Hide()
+      return
+    end
+    if not s.showAll and not inFishZone then
+      frame:Hide()
+      return
+    end
   end
-  render(GetZoneText() or "?", currentList)
+  render(label, displayList, statsList)
   frame:Show()
 end
 
@@ -904,6 +944,70 @@ end
 
 -- ---------------------------------------------------------------- events
 
+-- ---------------------------------------------------------------- settings
+
+local LOCALE_LIST = {}
+for k in pairs(LOCALE_PARSE) do LOCALE_LIST[#LOCALE_LIST + 1] = k end
+table.sort(LOCALE_LIST)
+
+local function applyLocaleSetting(value)
+  BrinyBestDB.settings.locale = value
+  setParseLocale(value)
+  requestSpellData()
+  queueUpdate(0.5)
+end
+
+local function openSettingsMenu(anchor)
+  local ok, err = pcall(function()
+    if not (MenuUtil and MenuUtil.CreateContextMenu) then
+      error("MenuUtil unavailable", 0)
+    end
+    MenuUtil.CreateContextMenu(anchor, function(_, root)
+      local s = BrinyBestDB.settings
+      root:CreateTitle("BrinyBest")
+      root:CreateCheckbox("Show all fish (ignore zone)",
+        function() return s.showAll end,
+        function() s.showAll = not s.showAll; update() end)
+      root:CreateCheckbox("Hide Trophy-rank fish",
+        function() return s.hideTrophy end,
+        function() s.hideTrophy = not s.hideTrophy; update() end)
+      root:CreateCheckbox("Only show in fishing zones",
+        function() return s.onlyAchievementZones ~= false end,
+        function() s.onlyAchievementZones = not (s.onlyAchievementZones ~= false); update() end)
+      root:CreateTitle("Parse language")
+      root:CreateRadio(("Auto (%s)"):format(GetLocale()),
+        function() return s.locale == nil end,
+        function() applyLocaleSetting(nil) end)
+      for _, code in ipairs(LOCALE_LIST) do
+        root:CreateRadio(code,
+          function() return s.locale == code end,
+          function() applyLocaleSetting(code) end)
+      end
+    end)
+  end)
+  if not ok then
+    chat("settings menu failed (" .. tostring(err) .. ") — use /bbf all | /bbf trophies | /bbf everywhere | /bbf lang <code|auto>")
+  end
+end
+
+local gear = CreateFrame("Button", nil, frame)
+gear:SetSize(15, 15)
+gear:SetPoint("RIGHT", sessionClose, "LEFT", 2, 0)
+gear:SetNormalTexture("Interface\\Buttons\\UI-OptionsButton")
+gear:SetHighlightTexture("Interface\\Buttons\\UI-OptionsButton", "ADD")
+gear:SetScript("OnClick", function() openSettingsMenu(gear) end)
+gear:SetScript("OnEnter", function(self)
+  GameTooltip:SetOwner(self, "ANCHOR_LEFT")
+  GameTooltip:SetText("Settings")
+  GameTooltip:Show()
+end)
+gear:SetScript("OnLeave", function() GameTooltip:Hide() end)
+
+-- right-click anywhere on the panel also opens settings
+frame:SetScript("OnMouseUp", function(_, btn)
+  if btn == "RightButton" then openSettingsMenu(frame) end
+end)
+
 local events = CreateFrame("Frame")
 events:RegisterEvent("ADDON_LOADED")
 events:RegisterEvent("PLAYER_ENTERING_WORLD")
@@ -916,6 +1020,10 @@ pcall(events.RegisterEvent, events, "SPELL_TEXT_UPDATE")
 events:SetScript("OnEvent", function(_, event, arg1)
   if event == "ADDON_LOADED" and arg1 == "BrinyBest" then
     BrinyBestDB = BrinyBestDB or {}
+    BrinyBestDB.settings = BrinyBestDB.settings or {}
+    if BrinyBestDB.settings.locale then
+      setParseLocale(BrinyBestDB.settings.locale)
+    end
     if BrinyBestDB.point then
       frame:ClearAllPoints()
       frame:SetPoint(BrinyBestDB.point[1], UIParent, BrinyBestDB.point[2], BrinyBestDB.point[3], BrinyBestDB.point[4])
@@ -949,12 +1057,17 @@ local HELP = [[
 /bbf reset        - reset position
 /bbf refresh      - force a data refresh
 /bbf debug        - print parse state for this zone to chat
+Settings (also via the gear button / right-click on the panel):
+/bbf all          - toggle showing all fish vs current zone
+/bbf trophies     - toggle hiding Trophy-rank fish
+/bbf everywhere   - toggle showing the panel outside fishing zones
+/bbf lang <code>  - override parse language (e.g. frFR), "auto" resets
 ]]
 
 SLASH_BRINYBEST1 = "/bbf"
 SLASH_BRINYBEST2 = "/brinybest"
 SlashCmdList.BRINYBEST = function(msg)
-  local cmd = (msg or ""):lower():match("^%s*(%S*)")
+  local cmd, rest = (msg or ""):lower():match("^%s*(%S*)%s*(.-)%s*$")
   if cmd == "" then
     if sessionHidden then
       -- X was clicked earlier this session; /bbf un-hides without touching the saved toggle
@@ -991,6 +1104,41 @@ SlashCmdList.BRINYBEST = function(msg)
     requestSpellData()
     queueUpdate(0.5)
     chat("refreshing")
+  elseif cmd == "all" then
+    BrinyBestDB.settings.showAll = not BrinyBestDB.settings.showAll
+    chat(BrinyBestDB.settings.showAll and "showing all fish" or "showing current zone")
+    update()
+  elseif cmd == "trophies" then
+    BrinyBestDB.settings.hideTrophy = not BrinyBestDB.settings.hideTrophy
+    chat(BrinyBestDB.settings.hideTrophy and "Trophy-rank fish hidden" or "Trophy-rank fish shown")
+    update()
+  elseif cmd == "everywhere" then
+    local s = BrinyBestDB.settings
+    s.onlyAchievementZones = not (s.onlyAchievementZones ~= false)
+    chat(s.onlyAchievementZones and "panel only shows in fishing zones" or "panel shows everywhere")
+    update()
+  elseif cmd == "lang" then
+    if rest == "" or rest == "auto" then
+      BrinyBestDB.settings.locale = nil
+      setParseLocale(nil)
+      chat("parse language: auto (" .. GetLocale() .. ")")
+      requestSpellData()
+      queueUpdate(0.5)
+    else
+      local match
+      for code in pairs(LOCALE_PARSE) do
+        if code:lower() == rest then match = code end
+      end
+      if match then
+        BrinyBestDB.settings.locale = match
+        setParseLocale(match)
+        chat("parse language: " .. match)
+        requestSpellData()
+        queueUpdate(0.5)
+      else
+        chat("unknown locale — available: " .. table.concat(LOCALE_LIST, ", "))
+      end
+    end
   elseif cmd == "version" then
     chat("v" .. (C_AddOns.GetAddOnMetadata("BrinyBest", "Version") or "?"))
   elseif cmd == "debug" then
