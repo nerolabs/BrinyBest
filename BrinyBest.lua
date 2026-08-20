@@ -1087,13 +1087,6 @@ local LOCALE_LIST = {}
 for k in pairs(LOCALE_PARSE) do LOCALE_LIST[#LOCALE_LIST + 1] = k end
 table.sort(LOCALE_LIST)
 
-local function applyLocaleSetting(value)
-  BrinyBestDB.settings.locale = value
-  setParseLocale(value)
-  requestSpellData()
-  queueUpdate(0.5)
-end
-
 local function openSettingsMenu(anchor)
   local ok, err = pcall(function()
     if not (MenuUtil and MenuUtil.CreateContextMenu) then
@@ -1111,15 +1104,9 @@ local function openSettingsMenu(anchor)
       root:CreateCheckbox("Only show in fishing zones",
         function() return s.onlyAchievementZones ~= false end,
         function() s.onlyAchievementZones = not (s.onlyAchievementZones ~= false); update() end)
-      root:CreateTitle("Parse language")
-      root:CreateRadio(("Auto (%s)"):format(GetLocale()),
-        function() return s.locale == nil end,
-        function() applyLocaleSetting(nil) end)
-      for _, code in ipairs(LOCALE_LIST) do
-        root:CreateRadio(code,
-          function() return s.locale == code end,
-          function() applyLocaleSetting(code) end)
-      end
+      -- parse language intentionally NOT in the menu: Auto is always correct on a
+      -- normal client and a mismatched override looks like a broken addon. The
+      -- /bbf lang command remains as a debugging tool.
     end)
   end)
   if not ok then
