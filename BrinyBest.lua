@@ -211,10 +211,48 @@ local PARSE = LOCALE_PARSE[GetLocale()]
 local untranslatedLocale = not PARSE and GetLocale() or nil
 PARSE = PARSE or LOCALE_PARSE.enUS
 
+-- leading grammatical articles vary per fish in Blizzard's localized area lists
+-- (frFR: "l’île Annelée" on some fish, "île Annelée" on others), so they must not
+-- take part in zone identity. Lowercase, checked against case-folded strings.
+LOCALE_PARSE.deDE.articlePrefixes = { "der ", "die ", "das " }
+LOCALE_PARSE.esES.articlePrefixes = { "el ", "la ", "los ", "las " }
+LOCALE_PARSE.frFR.articlePrefixes = { "l’", "l'", "le ", "la ", "les " }
+LOCALE_PARSE.itIT.articlePrefixes = { "l’", "l'", "il ", "lo ", "la ", "i ", "gli ", "le " }
+LOCALE_PARSE.ptBR.articlePrefixes = { "o ", "a ", "os ", "as " }
+
 -- localized numbers may use comma decimals ("96,6"); scores never carry thousands
 local function parseNumber(s)
   if not s then return nil end
   return tonumber((s:gsub(",", ".")))
+end
+
+-- case-fold beyond ASCII: Latin-1 accented capitals (frFR "Île"/"île") and Cyrillic
+-- (ruRU), which Lua's lower() leaves untouched
+local function foldCase(s)
+  s = s:lower()
+  s = s:gsub("\195([\128-\158])", function(c)
+    local b = c:byte()
+    if b ~= 0x97 then return "\195" .. string.char(b + 32) end -- skip × at C397
+  end)
+  s = s:gsub("\208([\144-\175])", function(c)
+    local b = c:byte()
+    if b <= 0x9F then return "\208" .. string.char(b + 32) end
+    return "\209" .. string.char(b - 32)
+  end)
+  return s
+end
+
+-- One zone, one identity: fold case and drop leading articles. Returns the grouping
+-- key plus a display form (original case, article stripped). Used on BOTH the parsed
+-- area strings and the player's live zone names so they can't drift apart.
+local function normalizeArea(a)
+  local folded = foldCase(a)
+  for _, art in ipairs(PARSE.articlePrefixes or {}) do
+    if folded:sub(1, #art) == art then
+      return folded:sub(#art + 1), a:sub(#art + 1)
+    end
+  end
+  return folded, a
 end
 
 local function startsWith(line, prefix)
@@ -236,7 +274,8 @@ end
 -- "." / " ;" (frFR) or "。" (zhCN)
 local function bulletValue(line)
   if line:sub(1, 1) ~= "-" and line:sub(1, 3) ~= "\226\128\147" then return nil end
-  local v = line:gsub("^[%-\226\128\147]+%s*", "", 1):gsub("[%s%.;\227\128\130]+$", "")
+  -- \194\160 = no-break space: French puts one before ";" in lists, and it isn't %s
+  local v = line:gsub("^[%-\226\128\147\194\160%s]+", "", 1):gsub("[%s%.;\194\160\227\128\130]+$", "")
   return v ~= "" and v or nil
 end
 
@@ -363,7 +402,7 @@ local function parseFish(fdef)
       mode = nil
     elseif mode == "rates" and line ~= "" then
       -- frFR sometimes writes a single rate line with no bullet
-      info.rates[#info.rates + 1] = (line:gsub("[%s%.;\227\128\130]+$", ""))
+      info.rates[#info.rates + 1] = (line:gsub("[%s%.;\194\160\227\128\130]+$", ""))
     end
   end
 
@@ -434,15 +473,15 @@ end
 local function currentZoneNames()
   local names = {}
   local z = GetZoneText()
-  if z and z ~= "" then names[z:lower()] = true end
+  if z and z ~= "" then names[(normalizeArea(z))] = true end
   local sub = GetSubZoneText()
-  if sub and sub ~= "" then names[sub:lower()] = true end
+  if sub and sub ~= "" then names[(normalizeArea(sub))] = true end
   local mapID = C_Map.GetBestMapForUnit("player")
   local hops = 0
   while mapID and hops < 6 do
     local mi = C_Map.GetMapInfo(mapID)
     if not mi then break end
-    if mi.name then names[mi.name:lower()] = true end
+    if mi.name then names[(normalizeArea(mi.name))] = true end
     mapID = (mi.parentMapID and mi.parentMapID > 0) and mi.parentMapID or nil
     hops = hops + 1
   end
@@ -757,8 +796,8 @@ local function render(zoneLabel, list)
   end
   -- all-zone opportunity summary, biggest missing points first
   local zlist = {}
-  for name, agg in pairs(zoneAgg) do
-    zlist[#zlist + 1] = { name = name, total = agg.total, max = agg.count * 100 }
+  for key, agg in pairs(zoneAgg) do
+    zlist[#zlist + 1] = { key = key, name = agg.display or key, total = agg.total, max = agg.count * 100 }
   end
   table.sort(zlist, function(x, y)
     local mx, my = x.max - x.total, y.max - y.total
@@ -766,10 +805,10 @@ local function render(zoneLabel, list)
     return x.name < y.name
   end)
   local names, scores, pcts, lefts = {}, {}, {}, {}
-  local cur = (zoneLabel or ""):lower()
+  local cur = (normalizeArea(zoneLabel or ""))
   for _, z in ipairs(zlist) do
     local n = z.name
-    if n:lower() == cur then n = "|cffffd100" .. n .. "|r" end
+    if z.key == cur then n = "|cffffd100" .. n .. "|r" end
     names[#names + 1] = n
     local pct = z.max > 0 and (z.total / z.max * 100) or 0
     scores[#scores + 1] = ("%.0f / %d"):format(z.total, z.max)
@@ -810,13 +849,14 @@ local function update()
       end
       local inZone = false
       for _, area in ipairs(info.areas) do
+        local key, disp = normalizeArea(area)
         if info.scoreable then
-          local agg = zoneAgg[area] or { total = 0, count = 0 }
+          local agg = zoneAgg[key] or { total = 0, count = 0, display = disp }
           agg.total = agg.total + info.score
           agg.count = agg.count + 1
-          zoneAgg[area] = agg
+          zoneAgg[key] = agg
         end
-        if not inZone and info.scoreable and zones[area:lower()] then
+        if not inZone and info.scoreable and zones[key] then
           currentList[#currentList + 1] = info
           inZone = true
         end
@@ -966,6 +1006,7 @@ end
 BrinyBest = {
   fish = FISH,
   ParseFish = parseFish,
+  NormalizeArea = normalizeArea,
   Celebrate = celebrate,
   Update = update,
   RequestSpellData = requestSpellData,
