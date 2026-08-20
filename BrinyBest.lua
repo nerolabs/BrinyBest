@@ -817,7 +817,13 @@ local function render(zoneLabel, list, statsList)
     local hiddenNote = (#list < scoreableCount and s.hideTrophy) and (" |cff9d9d9d(%d Trophy hidden)|r"):format(trophies) or ""
     footer:SetText(("%s: |cffffd100%.1f|r / %d pts   Trophies: |cffff8000%d|r/%d%s"):format(word, total, scoreableCount * 100, trophies, scoreableCount, hiddenNote))
   else
-    footer:SetText("No Midnight fish recorded for this zone.")
+    local s = BrinyBestDB.settings or {}
+    if s.locale and globalScoreable == 0 and pendingLoads == 0 then
+      -- a parse-language override that matches nothing is almost certainly mismatched
+      footer:SetText(("|cffff7f3fNo fish parsed — language override (%s) doesn't match the game's text language. Set it back to Auto.|r"):format(s.locale))
+    else
+      footer:SetText("No Midnight fish recorded for this zone.")
+    end
   end
   -- all-zone opportunity summary, biggest missing points first
   local zlist = {}
