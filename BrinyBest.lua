@@ -250,7 +250,10 @@ LOCALE_PARSE.ptBR.articlePrefixes = { "o ", "a ", "os ", "as " }
 -- localized numbers may use comma decimals ("96,6"); scores never carry thousands
 local function parseNumber(s)
   if not s then return nil end
-  return tonumber((s:gsub(",", ".")))
+  -- some locales end the line right after the number ("Score de pêche : 100.0.")
+  -- and the greedy capture keeps that final period; strip trailing separators
+  s = s:gsub(",", "."):gsub("[%.]+$", "")
+  return tonumber(s)
 end
 
 -- case-fold beyond ASCII: Latin-1 accented capitals (frFR "Île"/"île") and Cyrillic
