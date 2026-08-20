@@ -370,20 +370,49 @@ end
 -- the word on its rank line IS this locale's name for that rank. Learn it once
 -- (persisted per locale), but only from scores a safe distance from the
 -- provisional cutoffs so an off-by-a-little estimate can't mislabel a rank.
+local LEAD_LABEL = { " ", "\t", ":", "\194\160", "\239\188\154" }
+local function stripLeadingLabel(s)
+  local changed = true
+  while changed do
+    changed = false
+    for _, p in ipairs(LEAD_LABEL) do
+      if s:sub(1, #p) == p then
+        s = s:sub(#p + 1)
+        changed = true
+      end
+    end
+  end
+  return s
+end
+
 local function learnRankWord(info)
-  if not (info and info.rank and info.rankLine and info.score > 0) then return end
+  if not (info and info.rankLine) then return end
   local cache = BrinyBestDB and BrinyBestDB.rankWordCache
   if not cache then return end
   local loc = GetLocale()
   cache[loc] = cache[loc] or {}
-  if cache[loc][info.rank] then return end
+  local words = cache[loc]
+  -- an uncaught fish's rank line is the raw template — every localized rank word
+  -- in canonical order ("[guppy][vairon][brochet][requin][trophée]"): authoritative,
+  -- learned in one shot and allowed to overwrite heuristic entries
+  if info.rankLine:find("[", 1, true) then
+    local list = {}
+    for w in info.rankLine:gmatch("%[([^%]]+)%]") do list[#list + 1] = w end
+    if #list == 5 then
+      for i, rname in ipairs(RANK_ORDER) do words[rname] = list[i] end
+    end
+    return
+  end
+  -- otherwise learn one word from a fish whose rank is cutoff-certain
+  if not info.rank or info.score <= 0 then return end
+  if words[info.rank] then return end
   for _, rname in ipairs(RANK_ORDER) do
     local cut = RANK_CUTOFFS[rname]
     if cut and cut.est and math.abs(info.score - cut.score) < 1.5 then return end
   end
-  local word = info.rankLine:gsub("^[%s:：]+", ""):gsub("%s*[%(（].*$", "")
+  local word = stripLeadingLabel(info.rankLine):gsub("%s*[%(（].*$", "")
   word = stripTrailing(word)
-  if word ~= "" and #word < 40 then cache[loc][info.rank] = word end
+  if word ~= "" and #word < 40 then words[info.rank] = word end
 end
 
 local function rankDisplay(rank)
@@ -426,7 +455,7 @@ end
 local L_ALL = {
   enUS = {
     WARBAND = "Warband Anglin' Score",
-    ZONE = "Zone", TOTAL = "Total", TROPHIES = "Trophies",
+    ZONE = "Zone", TOTAL = "Total", TROPHIES = "Trophies", PTS = "pts",
     TROPHY_HIDDEN = "(%d Trophy hidden)",
     NO_FISH = "No Midnight fish recorded for this zone.",
     IMPROVE = "Improvement opportunities", TARGET_AVG = "(target %.1f%% avg)",
@@ -446,7 +475,7 @@ local L_ALL = {
   },
   frFR = {
     WARBAND = "Score de pêche du bataillon",
-    ZONE = "Zone", TOTAL = "Total", TROPHIES = "Trophées",
+    ZONE = "Zone", TOTAL = "Total", TROPHIES = "Trophées", PTS = "pts",
     TROPHY_HIDDEN = "(%d trophées masqués)",
     NO_FISH = "Aucun poisson de Midnight enregistré pour cette zone.",
     IMPROVE = "Opportunités d’amélioration", TARGET_AVG = "(objectif : %.1f%% de moyenne)",
@@ -466,7 +495,7 @@ local L_ALL = {
   },
   deDE = {
     WARBAND = "Angelwertung der Kriegsmeute",
-    ZONE = "Zone", TOTAL = "Gesamt", TROPHIES = "Trophäen",
+    ZONE = "Zone", TOTAL = "Gesamt", TROPHIES = "Trophäen", PTS = "Pkt.",
     TROPHY_HIDDEN = "(%d Trophäen ausgeblendet)",
     NO_FISH = "Keine Midnight-Fische für diese Zone erfasst.",
     IMPROVE = "Verbesserungsmöglichkeiten", TARGET_AVG = "(Ziel: %.1f%% Durchschnitt)",
@@ -486,7 +515,7 @@ local L_ALL = {
   },
   esES = {
     WARBAND = "Puntuación de pesca de la banda guerrera",
-    ZONE = "Zona", TOTAL = "Total", TROPHIES = "Trofeos",
+    ZONE = "Zona", TOTAL = "Total", TROPHIES = "Trofeos", PTS = "pts",
     TROPHY_HIDDEN = "(%d trofeos ocultos)",
     NO_FISH = "No hay peces de Midnight registrados en esta zona.",
     IMPROVE = "Oportunidades de mejora", TARGET_AVG = "(objetivo: %.1f%% de media)",
@@ -506,7 +535,7 @@ local L_ALL = {
   },
   itIT = {
     WARBAND = "Punteggio di Pesca della banda",
-    ZONE = "Zona", TOTAL = "Totale", TROPHIES = "Trofei",
+    ZONE = "Zona", TOTAL = "Totale", TROPHIES = "Trofei", PTS = "pt",
     TROPHY_HIDDEN = "(%d trofei nascosti)",
     NO_FISH = "Nessun pesce di Midnight registrato per questa zona.",
     IMPROVE = "Opportunità di miglioramento", TARGET_AVG = "(obiettivo: %.1f%% di media)",
@@ -526,7 +555,7 @@ local L_ALL = {
   },
   ptBR = {
     WARBAND = "Pontuação de pescaria do bando de guerra",
-    ZONE = "Zona", TOTAL = "Total", TROPHIES = "Troféus",
+    ZONE = "Zona", TOTAL = "Total", TROPHIES = "Troféus", PTS = "pts",
     TROPHY_HIDDEN = "(%d troféus ocultos)",
     NO_FISH = "Nenhum peixe de Midnight registrado nesta zona.",
     IMPROVE = "Oportunidades de melhoria", TARGET_AVG = "(meta: %.1f%% de média)",
@@ -546,7 +575,7 @@ local L_ALL = {
   },
   ruRU = {
     WARBAND = "Счет рыбалки отряда",
-    ZONE = "Зона", TOTAL = "Всего", TROPHIES = "Трофеи",
+    ZONE = "Зона", TOTAL = "Всего", TROPHIES = "Трофеи", PTS = "очк.",
     TROPHY_HIDDEN = "(скрыто трофеев: %d)",
     NO_FISH = "В этой зоне нет рыбы Midnight.",
     IMPROVE = "Возможности улучшения", TARGET_AVG = "(цель: в среднем %.1f%%)",
@@ -566,7 +595,7 @@ local L_ALL = {
   },
   koKR = {
     WARBAND = "전투부대 강태공 점수",
-    ZONE = "지역", TOTAL = "전체", TROPHIES = "트로피",
+    ZONE = "지역", TOTAL = "전체", TROPHIES = "트로피", PTS = "점",
     TROPHY_HIDDEN = "(트로피 %d마리 숨김)",
     NO_FISH = "이 지역에는 기록된 한밤 물고기가 없습니다.",
     IMPROVE = "개선 기회", TARGET_AVG = "(목표: 평균 %.1f%%)",
@@ -586,7 +615,7 @@ local L_ALL = {
   },
   zhCN = {
     WARBAND = "战团钓鱼得分",
-    ZONE = "区域", TOTAL = "总计", TROPHIES = "奖杯",
+    ZONE = "区域", TOTAL = "总计", TROPHIES = "奖杯", PTS = "分",
     TROPHY_HIDDEN = "（已隐藏%d条奖杯鱼）",
     NO_FISH = "该区域没有记录的至暗之夜鱼类。",
     IMPROVE = "提升机会", TARGET_AVG = "（目标：平均%.1f%%）",
@@ -606,7 +635,7 @@ local L_ALL = {
   },
   zhTW = {
     WARBAND = "戰隊釣魚分數",
-    ZONE = "區域", TOTAL = "總計", TROPHIES = "獎盃",
+    ZONE = "區域", TOTAL = "總計", TROPHIES = "獎盃", PTS = "分",
     TROPHY_HIDDEN = "（已隱藏%d條獎盃魚）",
     NO_FISH = "此區域沒有記錄的至暗之夜魚類。",
     IMPROVE = "提升機會", TARGET_AVG = "（目標：平均%.1f%%）",
@@ -736,6 +765,18 @@ local function parseFish(fdef)
       if rankLine:find(localized, 1, true) then
         info.rank = canonical
         break
+      end
+    end
+  end
+  if not info.rank and rankLine and not rankLine:find("[", 1, true) then
+    local cache = BrinyBestDB and BrinyBestDB.rankWordCache
+    local words = cache and cache[GetLocale()]
+    if words then
+      for canon, w in pairs(words) do
+        if rankLine:find(w, 1, true) then
+          info.rank = canon
+          break
+        end
       end
     end
   end
@@ -1173,7 +1214,7 @@ local function render(zoneLabel, list, statsList)
     local s = BrinyBestDB.settings or {}
     local word = s.showAll and L.TOTAL or L.ZONE
     local hiddenNote = (#list < scoreableCount and s.hideTrophy) and (" |cff9d9d9d%s|r"):format(L.TROPHY_HIDDEN:format(trophies)) or ""
-    footer:SetText(("%s: |cffffd100%.1f|r / %d pts   " .. L.TROPHIES .. ": |cffff8000%d|r/%d%s"):format(word, total, scoreableCount * 100, trophies, scoreableCount, hiddenNote))
+    footer:SetText(("%s: |cffffd100%.1f|r / %d " .. L.PTS .. "   " .. L.TROPHIES .. ": |cffff8000%d|r/%d%s"):format(word, total, scoreableCount * 100, trophies, scoreableCount, hiddenNote))
   else
     local s = BrinyBestDB.settings or {}
     if s.locale and globalScoreable == 0 and pendingLoads == 0 then
