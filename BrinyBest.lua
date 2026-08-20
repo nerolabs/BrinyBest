@@ -131,7 +131,7 @@ local LOCALE_PARSE = {
     ratesHeader = "Fréquence",
     descriptionHeader = "Description",
     specialHeader = "Utilisation spéciale",
-    rankWords = { ["guppy"] = "Guppy", ["Guppy"] = "Guppy" },
+    rankWords = { ["guppy"] = "Guppy", ["Guppy"] = "Guppy", ["trophée"] = "Trophy", ["Trophée"] = "Trophy" },
     openWaterWord = "étendues d’eau",
     poolWord = "bancs de poissons",
     onlyWord = "uniquement",
@@ -444,7 +444,11 @@ local function parseFish(fdef)
   info.scoreable = scorePos ~= nil
   -- skip colons/spaces (incl. French " : " and fullwidth "：") up to the number,
   -- without crossing onto the next line
-  info.score = (scoreEnd and parseNumber(desc:match("^[^%d\r\n]*([%d%.,]+)", scoreEnd + 1))) or 0
+  local scoreRaw = scoreEnd and desc:match("^[^%d\r\n]*([%d%.,]+)", scoreEnd + 1)
+  info.score = parseNumber(scoreRaw) or 0
+  -- freshly loaded clients can serve the description before its dynamic values
+  -- resolve ("Score de pêche : points." with no number); treat as still loading
+  info.valuesPending = info.scoreable and scoreRaw == nil
   local _, rankEnd = findLabel(desc, PARSE.rankLabel)
   local rankLine = rankEnd and desc:match("^%s*([^\n\r]+)", rankEnd + 1)
   if rankLine and not rankLine:find("%[") then
@@ -822,6 +826,9 @@ end
 -- ---------------------------------------------------------------- update
 
 local pendingLoads = 0
+local pendingValues = 0
+local loadRetries = 0
+local retryPending = false
 local currentList = {}
 local zoneAgg = {}
 local globalScoreable = 0
@@ -940,6 +947,7 @@ local function update()
   wipe(currentList)
   wipe(zoneAgg)
   pendingLoads = 0
+  pendingValues = 0
   globalScoreable = 0
   local allList = {}
 
@@ -950,6 +958,9 @@ local function update()
       if info.scoreable then
         globalScoreable = globalScoreable + 1
         allList[#allList + 1] = info
+      end
+      if info.valuesPending then
+        pendingValues = pendingValues + 1
       end
       local inZone = false
       for _, area in ipairs(info.areas) do
@@ -969,6 +980,22 @@ local function update()
       pendingLoads = pendingLoads + 1
     end
   end
+  -- fresh clients (new locale packs especially) resolve description values late;
+  -- keep nudging the spell data and re-checking until everything has numbers
+  if pendingLoads > 0 or pendingValues > 0 then
+    loadRetries = loadRetries + 1
+    if loadRetries <= 12 and not retryPending then
+      retryPending = true
+      requestSpellData()
+      C_Timer.After(1 + loadRetries * 0.5, function()
+        retryPending = false
+        update()
+      end)
+    end
+  else
+    loadRetries = 0
+  end
+
   local s = BrinyBestDB.settings or {}
   local displayList, label
   if s.showAll then
