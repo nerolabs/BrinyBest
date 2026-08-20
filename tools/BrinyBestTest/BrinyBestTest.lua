@@ -261,8 +261,28 @@ SlashCmdList.BRINYBESTTEST = function(msg)
       showCopy(table.concat(out, "\n"))
     end
 
+  elseif cmd == "maps" then
+    local out = {}
+    local m = C_Map.GetBestMapForUnit("player")
+    out[#out + 1] = "bestMap: " .. tostring(m)
+    out[#out + 1] = "zoneText: " .. tostring(GetZoneText()) .. " | subZone: " .. tostring(GetSubZoneText())
+    local cur, hops = m, 0
+    while cur and hops < 8 do
+      local mi = C_Map.GetMapInfo(cur)
+      if not mi then break end
+      out[#out + 1] = ("parent chain: %d = %s (mapType %s)"):format(cur, tostring(mi.name), tostring(mi.mapType))
+      cur = (mi.parentMapID and mi.parentMapID > 0) and mi.parentMapID or nil
+      hops = hops + 1
+    end
+    if m then
+      for _, c in ipairs(C_Map.GetMapChildrenInfo(m, nil, true) or {}) do
+        out[#out + 1] = ("child: %d = %s (mapType %s)"):format(c.mapID, tostring(c.name), tostring(c.mapType))
+      end
+    end
+    showCopy(table.concat(out, "\n"))
+
   else
-    chat("commands: /bbtest improve [name] | /bbtest trophy [name] | /bbtest fake | /bbtest list [copy] | /bbtest ranks | /bbtest desc <fish>")
+    chat("commands: /bbtest improve [name] | /bbtest trophy [name] | /bbtest fake | /bbtest list [copy] | /bbtest ranks | /bbtest desc <fish> | /bbtest maps")
   end
 end
 
