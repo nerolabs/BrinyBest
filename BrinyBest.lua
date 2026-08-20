@@ -113,7 +113,7 @@ local LOCALE_PARSE = {
     scoreLabel = "Puntuación de pesca",
     rankLabel = "Rango de la captura",
     areasHeader = "Zonas en las que puedes encontrar",
-    poolsHeader = "Zonas de pesca",
+    poolsHeader = { "Zonas de pesca", "Zona de pesca" },
     ratesHeader = "Frecuencia",
     descriptionHeader = "Descripción",
     specialHeader = "Especial",
@@ -125,13 +125,13 @@ local LOCALE_PARSE = {
   },
   frFR = {
     scoreLabel = "Score de pêche",
-    rankLabel = "Rang de capture",
+    rankLabel = { "Rang de la prise", "Rang de capture" },
     areasHeader = "Poisson présent dans les régions",
     poolsHeader = "Bancs de poissons",
     ratesHeader = "Fréquence",
     descriptionHeader = "Description",
     specialHeader = "Utilisation spéciale",
-    rankWords = { ["guppy"] = "Guppy" },
+    rankWords = { ["guppy"] = "Guppy", ["Guppy"] = "Guppy" },
     openWaterWord = "étendues d’eau",
     poolWord = "bancs de poissons",
     onlyWord = "uniquement",
@@ -141,7 +141,7 @@ local LOCALE_PARSE = {
     rankLabel = "Grado di Cattura",
     areasHeader = "Aree in cui si può trovare",
     poolsHeader = "Pozze di Pesca",
-    ratesHeader = { "Probabilità", "Frequenza" },
+    ratesHeader = { "Probabilità", "Frequenza", "Rates" },
     descriptionHeader = "Descrizione",
     specialHeader = "Speciale",
     pointsWord = "punti",
@@ -179,13 +179,13 @@ local LOCALE_PARSE = {
   },
   ruRU = {
     scoreLabel = "Счет рыбалки",
-    rankLabel = "Категория улова",
+    rankLabel = { "Уровень улова", "Категория улова" },
     areasHeader = "Зоны обитания",
     poolsHeader = "Косяки рыб",
     ratesHeader = "Распространенность",
     descriptionHeader = "Описание",
     specialHeader = "Особое свойство",
-    rankWords = { ["гуппи"] = "Guppy" },
+    rankWords = { ["гуппи"] = "Guppy", ["Гуппи"] = "Guppy" },
     openWaterWord = "открытом море",
     poolWord = "прудах",
     onlyWord = "только",
@@ -193,9 +193,9 @@ local LOCALE_PARSE = {
   zhCN = {
     scoreLabel = "钓鱼得分",
     rankLabel = "捕获等级",
-    areasHeader = "可发现此鱼的水域",
-    poolsHeader = "垂钓池",
-    ratesHeader = "几率",
+    areasHeader = { "可发现此鱼的水域", "可以找到这种鱼的地方" },
+    poolsHeader = { "垂钓池", "钓鱼场所" },
+    ratesHeader = { "几率", "稀有度" },
     descriptionHeader = "描述",
     specialHeader = "特殊",
     pointsWord = "分",
@@ -205,7 +205,33 @@ local LOCALE_PARSE = {
   },
 }
 LOCALE_PARSE.enGB = LOCALE_PARSE.enUS
-LOCALE_PARSE.esMX = LOCALE_PARSE.esES
+LOCALE_PARSE.esMX = {
+  scoreLabel = "Puntaje de pesca",
+  rankLabel = "Rango de la pesca",
+  areasHeader = "Áreas donde puedes encontrar",
+  poolsHeader = "Estanques de pesca",
+  ratesHeader = "Tasa de captura",
+  descriptionHeader = "Descripción",
+  specialHeader = "Especial",
+  pointsWord = "puntos",
+  rankWords = { ["Lebistes"] = "Guppy", ["Lebiste"] = "Guppy" },
+  openWaterWord = "aguas abiertas",
+  poolWord = "estanque",
+  onlyWord = "solo",
+}
+LOCALE_PARSE.zhTW = {
+  scoreLabel = "釣魚分數",
+  rankLabel = "漁獲等級",
+  areasHeader = "可以找到這種魚的地區",
+  poolsHeader = "釣魚池",
+  ratesHeader = "機率",
+  descriptionHeader = "說明",
+  specialHeader = "特殊",
+  pointsWord = "分",
+  rankWords = { ["孔雀魚"] = "Guppy" },
+  openWaterWord = "開放水域",
+  poolWord = "魚群",
+}
 
 local PARSE = LOCALE_PARSE[GetLocale()]
 local untranslatedLocale = not PARSE and GetLocale() or nil
@@ -216,6 +242,7 @@ PARSE = PARSE or LOCALE_PARSE.enUS
 -- take part in zone identity. Lowercase, checked against case-folded strings.
 LOCALE_PARSE.deDE.articlePrefixes = { "der ", "die ", "das " }
 LOCALE_PARSE.esES.articlePrefixes = { "el ", "la ", "los ", "las " }
+LOCALE_PARSE.esMX.articlePrefixes = LOCALE_PARSE.esES.articlePrefixes
 LOCALE_PARSE.frFR.articlePrefixes = { "l’", "l'", "le ", "la ", "les " }
 LOCALE_PARSE.itIT.articlePrefixes = { "l’", "l'", "il ", "lo ", "la ", "i ", "gli ", "le " }
 LOCALE_PARSE.ptBR.articlePrefixes = { "o ", "a ", "os ", "as " }
@@ -270,12 +297,56 @@ local function startsWithAny(line, prefixes)
   return startsWith(line, prefixes)
 end
 
+-- labels too: Blizzard is inconsistent between fish within one locale
+local function findLabel(desc, labels)
+  if type(labels) == "table" then
+    for _, l in ipairs(labels) do
+      local s, e = desc:find(l, 1, true)
+      if s then return s, e end
+    end
+    return nil
+  end
+  return desc:find(labels, 1, true)
+end
+
+-- strip whole punctuation SEQUENCES, never byte classes: multibyte chars like
+-- Korean 고 (EA B3 A0) or Cyrillic р (D1 80) share bytes with NBSP/。 and a
+-- byte-wise character class amputates them
+local TRAIL_PUNCT = { " ", "\t", ".", ";", ",", "\194\160", "\227\128\130" }
+local function stripTrailing(s)
+  local changed = true
+  while changed do
+    changed = false
+    for _, suf in ipairs(TRAIL_PUNCT) do
+      if #s >= #suf and s:sub(-#suf) == suf then
+        s = s:sub(1, -#suf - 1)
+        changed = true
+      end
+    end
+  end
+  return s
+end
+
+local LEAD_BULLET = { "-", "\226\128\147", " ", "\t", "\194\160" }
+local function stripLeadingBullet(s)
+  local changed = true
+  while changed do
+    changed = false
+    for _, p in ipairs(LEAD_BULLET) do
+      if s:sub(1, #p) == p then
+        s = s:sub(#p + 1)
+        changed = true
+      end
+    end
+  end
+  return s
+end
+
 -- list items start with "-" (most locales) or "–" (frFR); values may carry trailing
--- "." / " ;" (frFR) or "。" (zhCN)
+-- "." / NBSP+";" (frFR) or "。" (zhCN)
 local function bulletValue(line)
   if line:sub(1, 1) ~= "-" and line:sub(1, 3) ~= "\226\128\147" then return nil end
-  -- \194\160 = no-break space: French puts one before ";" in lists, and it isn't %s
-  local v = line:gsub("^[%-\226\128\147\194\160%s]+", "", 1):gsub("[%s%.;\194\160\227\128\130]+$", "")
+  local v = stripTrailing(stripLeadingBullet(line))
   return v ~= "" and v or nil
 end
 
@@ -369,12 +440,12 @@ local function parseFish(fdef)
   }
   -- Cursed Oddities (and possibly others) have no score system at all; only fish whose
   -- description carries an "Anglin' Score:" line count toward zone/global maximums
-  local scorePos, scoreEnd = desc:find(PARSE.scoreLabel, 1, true)
+  local scorePos, scoreEnd = findLabel(desc, PARSE.scoreLabel)
   info.scoreable = scorePos ~= nil
   -- skip colons/spaces (incl. French " : " and fullwidth "：") up to the number,
   -- without crossing onto the next line
   info.score = (scoreEnd and parseNumber(desc:match("^[^%d\r\n]*([%d%.,]+)", scoreEnd + 1))) or 0
-  local _, rankEnd = desc:find(PARSE.rankLabel, 1, true)
+  local _, rankEnd = findLabel(desc, PARSE.rankLabel)
   local rankLine = rankEnd and desc:match("^%s*([^\n\r]+)", rankEnd + 1)
   if rankLine and not rankLine:find("%[") then
     -- plain-find each localized rank word (works for CJK where "words" don't split)
@@ -421,7 +492,7 @@ local function parseFish(fdef)
       mode = nil
     elseif mode == "rates" and line ~= "" then
       -- frFR sometimes writes a single rate line with no bullet
-      info.rates[#info.rates + 1] = (line:gsub("[%s%.;\194\160\227\128\130]+$", ""))
+      info.rates[#info.rates + 1] = stripTrailing(line)
     end
   end
 
