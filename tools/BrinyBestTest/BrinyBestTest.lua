@@ -68,12 +68,13 @@ local function buildRoster()
       oddities[#oddities + 1] = info.name
     else
       scoreable = scoreable + 1
+      local name = info.name .. ((BrinyBest.Lures and BrinyBest.Lures[info.id]) and " (lure)" or "")
       for _, area in ipairs(info.areas) do
         if not zones[area] then
           zones[area] = {}
           zoneNames[#zoneNames + 1] = area
         end
-        zones[area][#zones[area] + 1] = info.name
+        zones[area][#zones[area] + 1] = name
       end
     end
   end
@@ -172,7 +173,7 @@ SlashCmdList.BRINYBESTTEST = function(msg)
     local zones, zoneNames, oddities, scoreable, uncached = buildRoster()
     if rest:lower() == "copy" then
       local out = {
-        ("**All %d scoreable fish by zone** (%d x 100 pts = %d max; fish in multiple zones listed in each)"):format(scoreable, scoreable, scoreable * 100),
+        ("**All %d scoreable fish by zone** (%d x 100 pts = %d max; fish in multiple zones listed in each; (lure) = a targeted lure item exists)"):format(scoreable, scoreable, scoreable * 100),
         "",
       }
       for _, z in ipairs(zoneNames) do

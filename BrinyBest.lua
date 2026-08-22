@@ -214,7 +214,8 @@ LOCALE_PARSE.esMX = {
   descriptionHeader = "Descripción",
   specialHeader = "Especial",
   pointsWord = "puntos",
-  rankWords = { ["Lebistes"] = "Guppy", ["Lebiste"] = "Guppy" },
+  -- "Lebiestes" = Blizzard typo in the Dirty Darter's esMX text (seen 2026-08-23)
+  rankWords = { ["Lebistes"] = "Guppy", ["Lebiste"] = "Guppy", ["Lebiestes"] = "Guppy" },
   openWaterWord = "aguas abiertas",
   poolWord = "estanque",
   onlyWord = "solo",
@@ -461,11 +462,13 @@ local L_ALL = {
     IMPROVE = "Improvement opportunities", TARGET_AVG = "(target %.1f%% avg)",
     LEFT_FMT = "%.0f left",
     TAG_OPEN = "open", TAG_POOL = "pool", TAG_POOL_ONLY = "pool only", TAG_EITHER = "either",
-    LEGEND_SUFFIX = "shows where catch rates are best",
+    TAG_LURE = "lure",
+    LEGEND_SUFFIX = "shows where catch rates are best", LEGEND_LURE = "= lure available",
     NO_SCORE_TT = "No Anglin' Score — this catch has no rank system and does not count toward zone or achievement points.",
     NOT_CAUGHT = "not caught yet",
     NEXT_RANK = "Next rank: %s at %s — %.1f points to go",
     ALL_FISH_TT = "All fish can be caught in open water or pools; the tag shows the better rate.",
+    LURE_TT = "A craftable or buyable lure boosts your chances for this fish.",
     NOTE_STARGORGER = "Requires its special lure (reputation reward) — works in %s and on normal pools around %s.",
     NOTE_SNAKEHEAD = "No lure required, but one definitely helps — caught in pools and open water around %s.",
     SET_SHOW_ALL = "Show all fish (ignore zone)", SET_HIDE_TROPHY = "Hide Trophy-rank fish",
@@ -481,11 +484,13 @@ local L_ALL = {
     IMPROVE = "Opportunités d’amélioration", TARGET_AVG = "(objectif : %.1f%% de moyenne)",
     LEFT_FMT = "%.0f restants",
     TAG_OPEN = "eau libre", TAG_POOL = "banc", TAG_POOL_ONLY = "banc uniquement", TAG_EITHER = "les deux",
-    LEGEND_SUFFIX = "indiquent le meilleur taux de capture",
+    TAG_LURE = "appât",
+    LEGEND_SUFFIX = "indiquent le meilleur taux de capture", LEGEND_LURE = "= appât disponible",
     NO_SCORE_TT = "Pas de score de pêche — cette prise n’a ni rang ni points et ne compte ni pour la zone ni pour le haut fait.",
     NOT_CAUGHT = "pas encore pêché",
     NEXT_RANK = "Rang suivant : %s à %s — %.1f points restants",
     ALL_FISH_TT = "Tous les poissons peuvent être pêchés en eau libre ou dans les bancs ; l’étiquette indique le meilleur taux.",
+    LURE_TT = "Un appât (à fabriquer ou acheter) augmente vos chances pour ce poisson.",
     NOTE_STARGORGER = "Nécessite son leurre spécial (récompense de réputation) — fonctionne dans %s et sur les bancs normaux autour de %s.",
     NOTE_SNAKEHEAD = "Aucun leurre requis, mais il aide beaucoup — se pêche dans les bancs et en eau libre autour de %s.",
     SET_SHOW_ALL = "Afficher tous les poissons (ignorer la zone)", SET_HIDE_TROPHY = "Masquer les poissons au rang Trophée",
@@ -501,11 +506,13 @@ local L_ALL = {
     IMPROVE = "Verbesserungsmöglichkeiten", TARGET_AVG = "(Ziel: %.1f%% Durchschnitt)",
     LEFT_FMT = "%.0f übrig",
     TAG_OPEN = "offen", TAG_POOL = "Schwarm", TAG_POOL_ONLY = "nur Schwarm", TAG_EITHER = "beides",
-    LEGEND_SUFFIX = "zeigen die besten Fangraten",
+    TAG_LURE = "Köder",
+    LEGEND_SUFFIX = "zeigen die besten Fangraten", LEGEND_LURE = "= Köder verfügbar",
     NO_SCORE_TT = "Keine Angelwertung — dieser Fang hat kein Rangsystem und zählt nicht für Zonen- oder Erfolgspunkte.",
     NOT_CAUGHT = "noch nicht gefangen",
     NEXT_RANK = "Nächster Rang: %s bei %s — noch %.1f Punkte",
     ALL_FISH_TT = "Alle Fische können im offenen Gewässer oder in Schwärmen gefangen werden; das Etikett zeigt die bessere Rate.",
+    LURE_TT = "Ein Köder (herstellbar oder kaufbar) erhöht die Fangchance für diesen Fisch.",
     NOTE_STARGORGER = "Benötigt seinen besonderen Köder (Rufbelohnung) — funktioniert in %s und an normalen Schwärmen rund um %s.",
     NOTE_SNAKEHEAD = "Kein Köder nötig, hilft aber deutlich — wird in Schwärmen und offenem Gewässer rund um %s gefangen.",
     SET_SHOW_ALL = "Alle Fische anzeigen (Zone ignorieren)", SET_HIDE_TROPHY = "Fische mit Trophäenrang ausblenden",
@@ -521,11 +528,13 @@ local L_ALL = {
     IMPROVE = "Oportunidades de mejora", TARGET_AVG = "(objetivo: %.1f%% de media)",
     LEFT_FMT = "faltan %.0f",
     TAG_OPEN = "mar abierto", TAG_POOL = "estanque", TAG_POOL_ONLY = "solo estanque", TAG_EITHER = "ambos",
-    LEGEND_SUFFIX = "indican la mejor tasa de captura",
+    TAG_LURE = "cebo",
+    LEGEND_SUFFIX = "indican la mejor tasa de captura", LEGEND_LURE = "= cebo disponible",
     NO_SCORE_TT = "Sin puntuación de pesca — esta captura no tiene rangos ni puntos y no cuenta para la zona ni el logro.",
     NOT_CAUGHT = "sin pescar aún",
     NEXT_RANK = "Siguiente rango: %s a %s — faltan %.1f puntos",
     ALL_FISH_TT = "Todos los peces pueden pescarse en mar abierto o en estanques; la etiqueta indica la mejor tasa.",
+    LURE_TT = "Un cebo (fabricable o comprable) aumenta las probabilidades de pescar este pez.",
     NOTE_STARGORGER = "Requiere su señuelo especial (recompensa de reputación) — funciona en %s y en los estanques normales alrededor de %s.",
     NOTE_SNAKEHEAD = "No requiere señuelo, pero ayuda bastante — se pesca en estanques y mar abierto alrededor de %s.",
     SET_SHOW_ALL = "Mostrar todos los peces (ignorar zona)", SET_HIDE_TROPHY = "Ocultar peces con rango Trofeo",
@@ -541,11 +550,13 @@ local L_ALL = {
     IMPROVE = "Opportunità di miglioramento", TARGET_AVG = "(obiettivo: %.1f%% di media)",
     LEFT_FMT = "%.0f mancanti",
     TAG_OPEN = "mare aperto", TAG_POOL = "pozza", TAG_POOL_ONLY = "solo pozza", TAG_EITHER = "entrambi",
-    LEGEND_SUFFIX = "indicano la probabilità di cattura migliore",
+    TAG_LURE = "esca",
+    LEGEND_SUFFIX = "indicano la probabilità di cattura migliore", LEGEND_LURE = "= esca disponibile",
     NO_SCORE_TT = "Nessun Punteggio di Pesca — questa cattura non ha gradi né punti e non conta per la zona o l'impresa.",
     NOT_CAUGHT = "non ancora pescato",
     NEXT_RANK = "Grado successivo: %s a %s — %.1f punti mancanti",
     ALL_FISH_TT = "Tutti i pesci si possono pescare in mare aperto o nelle pozze; l'etichetta indica la probabilità migliore.",
+    LURE_TT = "Un'esca (fabbricabile o acquistabile) aumenta le probabilità di catturare questo pesce.",
     NOTE_STARGORGER = "Richiede la sua esca speciale (ricompensa di reputazione) — funziona in %s e nelle pozze normali attorno a %s.",
     NOTE_SNAKEHEAD = "Nessuna esca richiesta, ma aiuta molto — si pesca nelle pozze e in mare aperto attorno a %s.",
     SET_SHOW_ALL = "Mostra tutti i pesci (ignora la zona)", SET_HIDE_TROPHY = "Nascondi i pesci di grado Trofeo",
@@ -561,11 +572,13 @@ local L_ALL = {
     IMPROVE = "Oportunidades de melhoria", TARGET_AVG = "(meta: %.1f%% de média)",
     LEFT_FMT = "faltam %.0f",
     TAG_OPEN = "águas abertas", TAG_POOL = "pesqueiro", TAG_POOL_ONLY = "só pesqueiro", TAG_EITHER = "ambos",
-    LEGEND_SUFFIX = "indicam a melhor taxa de captura",
+    TAG_LURE = "isca",
+    LEGEND_SUFFIX = "indicam a melhor taxa de captura", LEGEND_LURE = "= isca disponível",
     NO_SCORE_TT = "Sem pontuação de pescaria — esta captura não tem graus nem pontos e não conta para a zona nem a conquista.",
     NOT_CAUGHT = "ainda não pescado",
     NEXT_RANK = "Próximo grau: %s em %s — faltam %.1f pontos",
     ALL_FISH_TT = "Todos os peixes podem ser pescados em águas abertas ou pesqueiros; a etiqueta indica a melhor taxa.",
+    LURE_TT = "Uma isca (fabricável ou comprável) aumenta as chances de pescar este peixe.",
     NOTE_STARGORGER = "Requer sua isca especial (recompensa de reputação) — funciona em %s e nos pesqueiros normais ao redor de %s.",
     NOTE_SNAKEHEAD = "Nenhuma isca necessária, mas ajuda bastante — pescado em pesqueiros e águas abertas ao redor de %s.",
     SET_SHOW_ALL = "Mostrar todos os peixes (ignorar zona)", SET_HIDE_TROPHY = "Ocultar peixes de grau Troféu",
@@ -581,11 +594,13 @@ local L_ALL = {
     IMPROVE = "Возможности улучшения", TARGET_AVG = "(цель: в среднем %.1f%%)",
     LEFT_FMT = "осталось %.0f",
     TAG_OPEN = "открытая вода", TAG_POOL = "косяк", TAG_POOL_ONLY = "только косяк", TAG_EITHER = "оба",
-    LEGEND_SUFFIX = "показывают лучший шанс поимки",
+    TAG_LURE = "приманка",
+    LEGEND_SUFFIX = "показывают лучший шанс поимки", LEGEND_LURE = "= есть приманка",
     NO_SCORE_TT = "Нет счета рыбалки — этот улов не имеет уровней и очков и не идет в зачет зоны или достижения.",
     NOT_CAUGHT = "еще не поймана",
     NEXT_RANK = "Следующий уровень: %s при %s — осталось %.1f очков",
     ALL_FISH_TT = "Любую рыбу можно поймать в открытой воде или в косяках; метка показывает лучший шанс.",
+    LURE_TT = "Приманка (можно создать или купить) повышает шанс поймать эту рыбу.",
     NOTE_STARGORGER = "Требуется особая наживка (награда за репутацию) — работает в %s и на обычных косяках вокруг %s.",
     NOTE_SNAKEHEAD = "Наживка не требуется, но заметно помогает — ловится в косяках и открытой воде вокруг %s.",
     SET_SHOW_ALL = "Показывать всю рыбу (без учета зоны)", SET_HIDE_TROPHY = "Скрывать рыбу уровня «Трофей»",
@@ -601,11 +616,13 @@ local L_ALL = {
     IMPROVE = "개선 기회", TARGET_AVG = "(목표: 평균 %.1f%%)",
     LEFT_FMT = "%.0f 남음",
     TAG_OPEN = "개방 수역", TAG_POOL = "웅덩이", TAG_POOL_ONLY = "웅덩이 전용", TAG_EITHER = "둘 다",
-    LEGEND_SUFFIX = "표시는 더 좋은 확률을 나타냅니다",
+    TAG_LURE = "미끼",
+    LEGEND_SUFFIX = "표시는 더 좋은 확률을 나타냅니다", LEGEND_LURE = "= 미끼 있음",
     NO_SCORE_TT = "강태공 점수 없음 — 이 어획물은 등급과 점수가 없으며 지역 및 업적 점수에 포함되지 않습니다.",
     NOT_CAUGHT = "아직 잡지 못함",
     NEXT_RANK = "다음 등급: %s (%s) — %.1f점 남음",
     ALL_FISH_TT = "모든 물고기는 개방 수역이나 웅덩이에서 잡을 수 있으며, 표시는 더 좋은 확률을 나타냅니다.",
+    LURE_TT = "미끼(제작 또는 구매 가능)가 이 물고기를 잡을 확률을 높여 줍니다.",
     NOTE_STARGORGER = "전용 미끼(평판 보상)가 필요합니다 — %s와(과) %s 주변의 일반 웅덩이에서 사용할 수 있습니다.",
     NOTE_SNAKEHEAD = "미끼는 필요 없지만 큰 도움이 됩니다 — %s 주변의 웅덩이와 개방 수역에서 잡힙니다.",
     SET_SHOW_ALL = "모든 물고기 표시 (지역 무시)", SET_HIDE_TROPHY = "트로피 등급 물고기 숨기기",
@@ -621,11 +638,13 @@ local L_ALL = {
     IMPROVE = "提升机会", TARGET_AVG = "（目标：平均%.1f%%）",
     LEFT_FMT = "还差%.0f",
     TAG_OPEN = "开阔水域", TAG_POOL = "鱼群", TAG_POOL_ONLY = "仅鱼群", TAG_EITHER = "均可",
-    LEGEND_SUFFIX = "标签显示更高的捕获几率",
+    TAG_LURE = "诱饵",
+    LEGEND_SUFFIX = "标签显示更高的捕获几率", LEGEND_LURE = "= 有诱饵",
     NO_SCORE_TT = "没有钓鱼得分——该渔获没有等级和分数，不计入区域或成就分数。",
     NOT_CAUGHT = "尚未捕获",
     NEXT_RANK = "下一等级：%s（%s）——还差%.1f分",
     ALL_FISH_TT = "所有鱼都可以在开阔水域或鱼群中捕获；标签显示更高的几率。",
+    LURE_TT = "可制作或购买的诱饵能提高钓到这种鱼的几率。",
     NOTE_STARGORGER = "需要专用鱼饵（声望奖励）——可在%s以及%s周围的普通鱼群使用。",
     NOTE_SNAKEHEAD = "无需鱼饵，但鱼饵会有很大帮助——在%s周围的鱼群和开阔水域捕获。",
     SET_SHOW_ALL = "显示所有鱼（忽略区域）", SET_HIDE_TROPHY = "隐藏奖杯等级的鱼",
@@ -641,11 +660,13 @@ local L_ALL = {
     IMPROVE = "提升機會", TARGET_AVG = "（目標：平均%.1f%%）",
     LEFT_FMT = "還差%.0f",
     TAG_OPEN = "開放水域", TAG_POOL = "魚群", TAG_POOL_ONLY = "僅魚群", TAG_EITHER = "皆可",
-    LEGEND_SUFFIX = "標籤顯示更高的捕獲機率",
+    TAG_LURE = "誘餌",
+    LEGEND_SUFFIX = "標籤顯示更高的捕獲機率", LEGEND_LURE = "= 有誘餌",
     NO_SCORE_TT = "沒有釣魚分數——該漁獲沒有等級和分數，不計入區域或成就分數。",
     NOT_CAUGHT = "尚未捕獲",
     NEXT_RANK = "下一等級：%s（%s）——還差%.1f分",
     ALL_FISH_TT = "所有魚都可以在開放水域或魚群中捕獲；標籤顯示更高的機率。",
+    LURE_TT = "可製作或購買的誘餌能提高釣到這種魚的機率。",
     NOTE_STARGORGER = "需要專用魚餌（聲望獎勵）——可在%s以及%s周圍的普通魚群使用。",
     NOTE_SNAKEHEAD = "無需魚餌，但魚餌會有很大幫助——在%s周圍的魚群和開放水域捕獲。",
     SET_SHOW_ALL = "顯示所有魚（忽略區域）", SET_HIDE_TROPHY = "隱藏獎盃等級的魚",
@@ -729,6 +750,20 @@ end
 -- Blizzard rate lines too wrong to show (e.g. the Snakehead's phantom lure requirement)
 local FISH_HIDE_RATES = {
   [1295406] = true, -- Ula'tek Snakehead
+}
+
+-- Fish with a targeted lure item ("Increases the chance to catch X for 30 min").
+-- Complete family per the item DB, 2026-08-23: seven lures, all craftable from
+-- fishing recipe books. The Root Crab's lure is named "Rootland Crab Lure"
+-- (recipe 244818) — Blizzard's name, same fish.
+local FISH_LURES = {
+  [1225269] = true, -- Root Crab ("Rootland Crab Lure")
+  [1225273] = true, -- Ominous Octopus (241149)
+  [1225274] = true, -- Blood Hunter (241147)
+  [1225278] = true, -- Sunwell Fish (241150)
+  [1225284] = true, -- Lucky Loa (241145)
+  [1295406] = true, -- Ula'tek Snakehead (277821)
+  [1295408] = true, -- Coiled Stargorger (241151, required — see fishNote)
 }
 
 local function parseFish(fdef)
@@ -849,16 +884,20 @@ local function parseFish(fdef)
 end
 
 local function sourceSuffix(info)
+  local s = ""
   if info.bias == "open" then
-    return (" |cff69ccf0(%s)|r"):format(L.TAG_OPEN)
+    s = (" |cff69ccf0(%s)|r"):format(L.TAG_OPEN)
   elseif info.bias == "pools" then
-    return (" |cffffcc00(%s)|r"):format(L.TAG_POOL)
+    s = (" |cffffcc00(%s)|r"):format(L.TAG_POOL)
   elseif info.bias == "poolsonly" then
-    return (" |cffff7f3f(%s)|r"):format(L.TAG_POOL_ONLY)
+    s = (" |cffff7f3f(%s)|r"):format(L.TAG_POOL_ONLY)
   elseif info.bias == "both" then
-    return (" |cff1eff00(%s)|r"):format(L.TAG_EITHER)
+    s = (" |cff1eff00(%s)|r"):format(L.TAG_EITHER)
   end
-  return ""
+  if FISH_LURES[info.id] then
+    s = s .. ((s == "" and " " or "") .. "|cffa335ee(%s)|r"):format(L.TAG_LURE)
+  end
+  return s
 end
 
 -- ---------------------------------------------------------------- warband score
@@ -1075,7 +1114,7 @@ local zoneLeft = statColumn(-12)
 
 local legend = frame:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
 legend:SetJustifyH("LEFT")
-legend:SetText(("|cff69ccf0(%s)|r / |cffffcc00(%s)|r / |cff1eff00(%s)|r %s"):format(L.TAG_OPEN, L.TAG_POOL, L.TAG_EITHER, L.LEGEND_SUFFIX))
+legend:SetText(("|cff69ccf0(%s)|r / |cffffcc00(%s)|r / |cff1eff00(%s)|r %s  |cffa335ee(%s)|r %s"):format(L.TAG_OPEN, L.TAG_POOL, L.TAG_EITHER, L.LEGEND_SUFFIX, L.TAG_LURE, L.LEGEND_LURE))
 
 local rows = {}
 local function getRow(i)
@@ -1135,6 +1174,9 @@ local function getRow(i)
     if note then
       GameTooltip:AddLine(note, 1, 0.55, 0.25, true)
     else
+      if FISH_LURES[info.id] then
+        GameTooltip:AddLine(L.LURE_TT, 0.64, 0.21, 0.93, true)
+      end
       GameTooltip:AddLine(L.ALL_FISH_TT, 0.5, 0.5, 0.5, true)
     end
     GameTooltip:Show()
@@ -1577,6 +1619,7 @@ end
 
 BrinyBest = {
   fish = FISH,
+  Lures = FISH_LURES,
   ParseFish = parseFish,
   NormalizeArea = normalizeArea,
   Celebrate = celebrate,
