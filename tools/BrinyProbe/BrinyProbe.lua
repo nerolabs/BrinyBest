@@ -2,7 +2,7 @@
 -- All output accumulates in a copyable window: /briny show, click "Select All", Cmd+C.
 
 local ADDON_NAME = ...
-local VERSION = "0.5.0"
+local VERSION = "0.6.0"
 local MAX_LINES = 6000
 local ACHIEVEMENT_ID = 63510 -- The Briny Best
 local DEFAULT_SPELLS = { 1225340, 1303630 } -- Midnight Anglin', The Briny Best of 'Em
@@ -759,6 +759,92 @@ local function watchCmd(arg)
   end
 end
 
+-- ---------------------------------------------------------------- catch probe
+-- Hunt for a per-catch score signal. Non-record catches don't touch the journal
+-- description (it stores only your best), so if the number reaches the client at
+-- all it must arrive elsewhere — most likely a UI widget (the on-screen score
+-- popup), a hidden spell cast, or a system/skill chat line.
+
+local function safestr(v)
+  local ok, s = pcall(function() return v .. "" end) -- 12.1 secret strings throw here
+  if not ok then return "<secret>" end
+  return (s:gsub("|", "||"))
+end
+
+-- resolve a widget's payload: try every C_UIWidgetManager visualization getter
+-- and dump the scalar fields of whichever ones answer for this widgetID
+local function dumpWidget(widgetID)
+  for name, fn in safepairs(C_UIWidgetManager) do
+    if type(name) == "string" and type(fn) == "function" and name:find("Visualization") then
+      local ok, vi = pcall(fn, widgetID)
+      if ok and type(vi) == "table" then
+        local parts = {}
+        for k, v in safepairs(vi) do
+          local tv = type(v)
+          if tv == "string" then
+            parts[#parts + 1] = tostring(k) .. "=" .. string.format("%q", safestr(v))
+          elseif tv == "number" or tv == "boolean" then
+            parts[#parts + 1] = tostring(k) .. "=" .. tostring(v)
+          end
+        end
+        if #parts > 0 then
+          out("            %s(%s): %s", (name:gsub("^Get", ""):gsub("VisualizationInfo$", "")), tostring(widgetID), table.concat(parts, " "))
+        end
+      end
+    end
+  end
+end
+
+local catcher = CreateFrame("Frame")
+local CATCH_EVENTS = {
+  "CHAT_MSG_LOOT", "CHAT_MSG_SYSTEM", "CHAT_MSG_SKILL", "COMBAT_TEXT_UPDATE",
+  "UPDATE_UI_WIDGET", "ITEM_PUSH", "LOOT_READY", "CRITERIA_UPDATE",
+}
+
+catcher:SetScript("OnEvent", function(_, event, ...)
+  local t = GetTime()
+  if event == "UPDATE_UI_WIDGET" then
+    local wi = ...
+    if type(wi) == "table" then
+      out("%9.2f  UPDATE_UI_WIDGET id=%s setID=%s type=%s", t,
+        tostring(safeget(wi, "widgetID")), tostring(safeget(wi, "widgetSetID")), tostring(safeget(wi, "widgetType")))
+      local id = safeget(wi, "widgetID")
+      if id then dumpWidget(id) end
+    end
+  elseif event == "UNIT_SPELLCAST_SUCCEEDED" then
+    local unit, _, spellID = ...
+    local si = spellID and C_Spell.GetSpellInfo(spellID)
+    out("%9.2f  CAST %s (%s)", t, tostring(spellID), (si and si.name) and safestr(si.name) or "?")
+  elseif event == "CRITERIA_UPDATE" then
+    out("%9.2f  CRITERIA_UPDATE", t)
+  else
+    local n = select("#", ...)
+    local args = {}
+    for i = 1, math.min(n, 6) do
+      local ok, s = pcall(shortval, (select(i, ...)))
+      args[i] = ok and s or "<secret>"
+    end
+    out("%9.2f  %s(%s)", t, event, table.concat(args, ", "))
+  end
+end)
+
+local function catchCmd(arg)
+  if arg == "on" then
+    for _, e in ipairs(CATCH_EVENTS) do pcall(catcher.RegisterEvent, catcher, e) end
+    pcall(catcher.RegisterUnitEvent, catcher, "UNIT_SPELLCAST_SUCCEEDED", "player")
+    local critQty, precise = getScores()
+    out("== CATCH PROBE ON @ %.2f == baseline crit=%s precise=%s", GetTime(), tostring(critQty), tostring(precise))
+    chat("catch probe ON — fish ~10 casts, INCLUDING catches that don't beat your best, then /briny catch off")
+  elseif arg == "off" then
+    catcher:UnregisterAllEvents()
+    out("== CATCH PROBE OFF @ %.2f ==", GetTime())
+    refreshWindow()
+    chat("catch probe OFF — window opened, Select All + Cmd+C")
+  else
+    chat("usage: /briny catch on | off")
+  end
+end
+
 -- ---------------------------------------------------------------- event logger
 
 local logger = CreateFrame("Frame")
@@ -848,6 +934,7 @@ local HELP = [[
 /briny strings <text>- find globals whose string VALUE contains <text> (e.g. anglin)
 /briny score         - read current Anglin' Score (criteria + precise spell-desc value)
 /briny watch on|off  - live-log score deltas per catch (the key experiment!)
+/briny catch on|off  - hunt the per-catch score signal (widgets/casts/chat around each catch)
 /briny tradeskill    - dump ALL fishing journal recipes/categories via C_TradeSkillUI
 /briny mouseover     - dump the UI element under the mouse (hover a fish, press Enter)
 /briny achcat        - walk achievement category tree for fishing categories
@@ -905,6 +992,8 @@ SlashCmdList.BRINYPROBE = function(msg)
     refreshWindow()
   elseif cmd == "watch" then
     watchCmd(rest:lower())
+  elseif cmd == "catch" then
+    catchCmd(rest:lower())
   elseif cmd == "tradeskill" or cmd == "ts" then
     probeTradeSkill()
     refreshWindow()
