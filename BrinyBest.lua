@@ -1398,8 +1398,8 @@ local function update()
   end
   local inFishZone = #currentList > 0
   if not frame.manualShow then
-    -- default on: stay hidden until the session's first Midnight fish is caught
-    if s.hideUntilCatch ~= false and not caughtThisSession then
+    -- opt-in: stay hidden until the session's first Midnight fish is caught
+    if s.hideUntilCatch and not caughtThisSession then
       frame:Hide()
       return
     end
@@ -1453,8 +1453,8 @@ local function openSettingsMenu(anchor)
         function() return s.onlyAchievementZones ~= false end,
         function() s.onlyAchievementZones = not (s.onlyAchievementZones ~= false); update() end)
       root:CreateCheckbox(L.SET_HIDE_LOGIN,
-        function() return s.hideUntilCatch ~= false end,
-        function() s.hideUntilCatch = not (s.hideUntilCatch ~= false); update() end)
+        function() return s.hideUntilCatch end,
+        function() s.hideUntilCatch = not s.hideUntilCatch; update() end)
       -- parse language intentionally NOT in the menu: Auto is always correct on a
       -- normal client and a mismatched override looks like a broken addon. The
       -- /bbf lang command remains as a debugging tool.
@@ -1616,7 +1616,7 @@ SlashCmdList.BRINYBEST = function(msg)
     update()
   elseif cmd == "firstcatch" then
     local s = BrinyBestDB.settings
-    s.hideUntilCatch = not (s.hideUntilCatch ~= false)
+    s.hideUntilCatch = not s.hideUntilCatch
     chat(s.hideUntilCatch and "panel hidden until the session's first catch" or "panel shows without waiting for a catch")
     update()
   elseif cmd == "lang" then
