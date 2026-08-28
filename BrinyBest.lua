@@ -473,7 +473,7 @@ local L_ALL = {
     NOTE_SNAKEHEAD = "No lure required, but one definitely helps — caught in pools and open water around %s.",
     SET_SHOW_ALL = "Show all fish (ignore zone)", SET_HIDE_TROPHY = "Hide Trophy-rank fish",
     SET_ONLY_ZONES = "Only show in fishing zones", SETTINGS = "Settings", ALL_FISH = "All fish",
-    SET_HIDE_LOGIN = "Hide until first catch of the session",
+    SET_HIDE_LOGIN = "Hide until you start fishing",
     IMPROVED = "Improved %s: %s → %s", REACHED = " — reached %s rank!",
     TROPHY_CHAT = "TROPHY! %s is at max rank!", BANKED = "— 100 points banked!",
   },
@@ -496,7 +496,7 @@ local L_ALL = {
     NOTE_SNAKEHEAD = "Aucun leurre requis, mais il aide beaucoup — se pêche dans les bancs et en eau libre autour de %s.",
     SET_SHOW_ALL = "Afficher tous les poissons (ignorer la zone)", SET_HIDE_TROPHY = "Masquer les poissons au rang Trophée",
     SET_ONLY_ZONES = "Afficher uniquement dans les zones de pêche", SETTINGS = "Paramètres", ALL_FISH = "Tous les poissons",
-    SET_HIDE_LOGIN = "Masquer jusqu’à la première prise de la session",
+    SET_HIDE_LOGIN = "Masquer jusqu’au début de la pêche",
     IMPROVED = "%s amélioré : %s → %s", REACHED = " — rang %s atteint !",
     TROPHY_CHAT = "TROPHÉE ! %s est au rang maximum !", BANKED = "— 100 points engrangés !",
   },
@@ -519,7 +519,7 @@ local L_ALL = {
     NOTE_SNAKEHEAD = "Kein Köder nötig, hilft aber deutlich — wird in Schwärmen und offenem Gewässer rund um %s gefangen.",
     SET_SHOW_ALL = "Alle Fische anzeigen (Zone ignorieren)", SET_HIDE_TROPHY = "Fische mit Trophäenrang ausblenden",
     SET_ONLY_ZONES = "Nur in Angelzonen anzeigen", SETTINGS = "Einstellungen", ALL_FISH = "Alle Fische",
-    SET_HIDE_LOGIN = "Bis zum ersten Fang der Sitzung ausblenden",
+    SET_HIDE_LOGIN = "Ausblenden, bis geangelt wird",
     IMPROVED = "%s verbessert: %s → %s", REACHED = " — Rang %s erreicht!",
     TROPHY_CHAT = "TROPHÄE! %s hat den Höchstrang!", BANKED = "— 100 Punkte gesichert!",
   },
@@ -542,7 +542,7 @@ local L_ALL = {
     NOTE_SNAKEHEAD = "No requiere señuelo, pero ayuda bastante — se pesca en estanques y mar abierto alrededor de %s.",
     SET_SHOW_ALL = "Mostrar todos los peces (ignorar zona)", SET_HIDE_TROPHY = "Ocultar peces con rango Trofeo",
     SET_ONLY_ZONES = "Mostrar solo en zonas de pesca", SETTINGS = "Ajustes", ALL_FISH = "Todos los peces",
-    SET_HIDE_LOGIN = "Ocultar hasta la primera captura de la sesión",
+    SET_HIDE_LOGIN = "Ocultar hasta empezar a pescar",
     IMPROVED = "%s mejorado: %s → %s", REACHED = " — ¡rango %s alcanzado!",
     TROPHY_CHAT = "¡TROFEO! ¡%s está al rango máximo!", BANKED = "— ¡100 puntos asegurados!",
   },
@@ -565,7 +565,7 @@ local L_ALL = {
     NOTE_SNAKEHEAD = "Nessuna esca richiesta, ma aiuta molto — si pesca nelle pozze e in mare aperto attorno a %s.",
     SET_SHOW_ALL = "Mostra tutti i pesci (ignora la zona)", SET_HIDE_TROPHY = "Nascondi i pesci di grado Trofeo",
     SET_ONLY_ZONES = "Mostra solo nelle zone di pesca", SETTINGS = "Impostazioni", ALL_FISH = "Tutti i pesci",
-    SET_HIDE_LOGIN = "Nascondi fino alla prima cattura della sessione",
+    SET_HIDE_LOGIN = "Nascondi finché non inizi a pescare",
     IMPROVED = "%s migliorato: %s → %s", REACHED = " — grado %s raggiunto!",
     TROPHY_CHAT = "TROFEO! %s è al grado massimo!", BANKED = "— 100 punti assicurati!",
   },
@@ -588,7 +588,7 @@ local L_ALL = {
     NOTE_SNAKEHEAD = "Nenhuma isca necessária, mas ajuda bastante — pescado em pesqueiros e águas abertas ao redor de %s.",
     SET_SHOW_ALL = "Mostrar todos os peixes (ignorar zona)", SET_HIDE_TROPHY = "Ocultar peixes de grau Troféu",
     SET_ONLY_ZONES = "Mostrar apenas em zonas de pesca", SETTINGS = "Configurações", ALL_FISH = "Todos os peixes",
-    SET_HIDE_LOGIN = "Ocultar até a primeira captura da sessão",
+    SET_HIDE_LOGIN = "Ocultar até começar a pescar",
     IMPROVED = "%s melhorado: %s → %s", REACHED = " — grau %s alcançado!",
     TROPHY_CHAT = "TROFÉU! %s está no grau máximo!", BANKED = "— 100 pontos garantidos!",
   },
@@ -611,7 +611,7 @@ local L_ALL = {
     NOTE_SNAKEHEAD = "Наживка не требуется, но заметно помогает — ловится в косяках и открытой воде вокруг %s.",
     SET_SHOW_ALL = "Показывать всю рыбу (без учета зоны)", SET_HIDE_TROPHY = "Скрывать рыбу уровня «Трофей»",
     SET_ONLY_ZONES = "Показывать только в рыболовных зонах", SETTINGS = "Настройки", ALL_FISH = "Вся рыба",
-    SET_HIDE_LOGIN = "Скрывать до первого улова за сессию",
+    SET_HIDE_LOGIN = "Скрывать, пока вы не начнёте рыбачить",
     IMPROVED = "Улучшено: %s — %s → %s", REACHED = " — достигнут уровень %s!",
     TROPHY_CHAT = "ТРОФЕЙ! %s достигла максимального уровня!", BANKED = "— 100 очков в копилке!",
   },
@@ -634,7 +634,7 @@ local L_ALL = {
     NOTE_SNAKEHEAD = "미끼는 필요 없지만 큰 도움이 됩니다 — %s 주변의 웅덩이와 개방 수역에서 잡힙니다.",
     SET_SHOW_ALL = "모든 물고기 표시 (지역 무시)", SET_HIDE_TROPHY = "트로피 등급 물고기 숨기기",
     SET_ONLY_ZONES = "낚시 지역에서만 표시", SETTINGS = "설정", ALL_FISH = "모든 물고기",
-    SET_HIDE_LOGIN = "세션 첫 어획 전까지 숨기기",
+    SET_HIDE_LOGIN = "낚시를 시작할 때까지 숨기기",
     IMPROVED = "%s 향상: %s → %s", REACHED = " — %s 등급 달성!",
     TROPHY_CHAT = "트로피! %s이(가) 최고 등급입니다!", BANKED = "— 100점 확보!",
   },
@@ -657,7 +657,7 @@ local L_ALL = {
     NOTE_SNAKEHEAD = "无需鱼饵，但鱼饵会有很大帮助——在%s周围的鱼群和开阔水域捕获。",
     SET_SHOW_ALL = "显示所有鱼（忽略区域）", SET_HIDE_TROPHY = "隐藏奖杯等级的鱼",
     SET_ONLY_ZONES = "仅在钓鱼区域显示", SETTINGS = "设置", ALL_FISH = "所有鱼",
-    SET_HIDE_LOGIN = "本次登录首次钓获前隐藏",
+    SET_HIDE_LOGIN = "开始钓鱼前隐藏",
     IMPROVED = "%s提升：%s → %s", REACHED = "——达到%s等级！",
     TROPHY_CHAT = "奖杯！%s已达最高等级！", BANKED = "——已收入100分！",
   },
@@ -680,7 +680,7 @@ local L_ALL = {
     NOTE_SNAKEHEAD = "無需魚餌，但魚餌會有很大幫助——在%s周圍的魚群和開放水域捕獲。",
     SET_SHOW_ALL = "顯示所有魚（忽略區域）", SET_HIDE_TROPHY = "隱藏獎盃等級的魚",
     SET_ONLY_ZONES = "僅在釣魚區域顯示", SETTINGS = "設定", ALL_FISH = "所有魚",
-    SET_HIDE_LOGIN = "本次登入首次釣獲前隱藏",
+    SET_HIDE_LOGIN = "開始釣魚前隱藏",
     IMPROVED = "%s提升：%s → %s", REACHED = "——達到%s等級！",
     TROPHY_CHAT = "獎盃！%s已達最高等級！", BANKED = "——已收入100分！",
   },
@@ -954,7 +954,10 @@ end
 -- ---------------------------------------------------------------- progress tracking / celebration
 
 local sessionHidden = false -- X button hides until next reload; intentionally not saved
-local caughtThisSession = false -- gates "hide until first catch"; session-scoped so a reload behaves like a login
+local fishedThisSession = false -- gates "hide until fishing"; session-scoped so a reload behaves like a login
+-- the "Fishing" cast spells, observed via the BrinyProbe catch capture; any cast
+-- counts as fishing activity — no need to wait for a catch, let alone a rank change
+local FISHING_CASTS = { [131474] = true, [131476] = true }
 
 local function coloredName(info)
   return ("|cff%s%s|r"):format(CAT_HEX[info.cat] or "ffffff", info.name)
@@ -1398,8 +1401,8 @@ local function update()
   end
   local inFishZone = #currentList > 0
   if not frame.manualShow then
-    -- opt-in: stay hidden until the session's first Midnight fish is caught
-    if s.hideUntilCatch and not caughtThisSession then
+    -- opt-in: stay hidden until fishing starts this session
+    if s.hideUntilCatch and not fishedThisSession then
       frame:Hide()
       return
     end
@@ -1491,6 +1494,7 @@ events:RegisterEvent("ZONE_CHANGED")
 events:RegisterEvent("ZONE_CHANGED_INDOORS")
 events:RegisterEvent("CRITERIA_UPDATE")
 events:RegisterEvent("CHAT_MSG_LOOT")
+pcall(events.RegisterUnitEvent, events, "UNIT_SPELLCAST_SUCCEEDED", "player")
 pcall(events.RegisterEvent, events, "SPELL_TEXT_UPDATE")
 
 events:SetScript("OnEvent", function(_, event, arg1, ...)
@@ -1520,10 +1524,19 @@ events:SetScript("OnEvent", function(_, event, arg1, ...)
     -- (runs even when the panel is hidden so improvement/trophy alerts still fire)
     requestSpellData()
     queueUpdate(1.2)
+  elseif event == "UNIT_SPELLCAST_SUCCEEDED" then
+    -- only casts in a zone with Midnight fish count — fishing elsewhere neither
+    -- shows the panel nor arms it to appear on the next Briny zone visit
+    local spellID = select(2, ...)
+    if FISHING_CASTS[spellID] and not fishedThisSession and #currentList > 0 then
+      fishedThisSession = true
+      queueUpdate(0.3)
+    end
   elseif event == "CHAT_MSG_LOOT" then
-    if not caughtThisSession then
-      -- loot item names match the journal spell names, so this works in every locale;
-      -- arg12 (the looter GUID) filters out party members' catches
+    -- backup trigger in case a special rod casts an unlisted spell: any journal
+    -- fish in our own loot counts. Loot item names match the journal spell names,
+    -- so this works in every locale; arg12 (the looter GUID) filters party members.
+    if not fishedThisSession then
       local guid = select(11, ...)
       if guid == nil or guid == UnitGUID("player") then
         local looted = arg1 and arg1:match("|h%[(.-)%]|h")
@@ -1531,7 +1544,7 @@ events:SetScript("OnEvent", function(_, event, arg1, ...)
           for _, fdef in ipairs(FISH) do
             local si = C_Spell.GetSpellInfo(fdef.id)
             if si and si.name == looted then
-              caughtThisSession = true
+              fishedThisSession = true
               queueUpdate(0.3)
               break
             end
@@ -1557,7 +1570,7 @@ Settings (also via the gear button / right-click on the panel):
 /bbf all          - toggle showing all fish vs current zone
 /bbf trophies     - toggle hiding Trophy-rank fish
 /bbf everywhere   - toggle showing the panel outside fishing zones
-/bbf firstcatch   - toggle hiding the panel until the session's first catch
+/bbf firstcatch   - toggle hiding the panel until you start fishing
 /bbf lang <code>  - override parse language (e.g. frFR), "auto" resets
 ]]
 
@@ -1617,7 +1630,7 @@ SlashCmdList.BRINYBEST = function(msg)
   elseif cmd == "firstcatch" then
     local s = BrinyBestDB.settings
     s.hideUntilCatch = not s.hideUntilCatch
-    chat(s.hideUntilCatch and "panel hidden until the session's first catch" or "panel shows without waiting for a catch")
+    chat(s.hideUntilCatch and "panel hidden until you start fishing" or "panel shows without waiting for fishing")
     update()
   elseif cmd == "lang" then
     if rest == "" or rest == "auto" then
