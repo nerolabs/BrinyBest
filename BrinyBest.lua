@@ -474,6 +474,7 @@ local L_ALL = {
     SET_SHOW_ALL = "Show all fish (ignore zone)", SET_HIDE_TROPHY = "Hide Trophy-rank fish",
     SET_ONLY_ZONES = "Only show in Midnight fishing zones", SETTINGS = "Settings", ALL_FISH = "All fish",
     SET_HIDE_LOGIN = "Hide until you start fishing",
+    SET_SCALE = "Scale",
     IMPROVED = "Improved %s: %s → %s", REACHED = " — reached %s rank!",
     TROPHY_CHAT = "TROPHY! %s is at max rank!", BANKED = "— 100 points banked!",
   },
@@ -497,6 +498,7 @@ local L_ALL = {
     SET_SHOW_ALL = "Afficher tous les poissons (ignorer la zone)", SET_HIDE_TROPHY = "Masquer les poissons au rang Trophée",
     SET_ONLY_ZONES = "Afficher uniquement dans les zones de pêche de Midnight", SETTINGS = "Paramètres", ALL_FISH = "Tous les poissons",
     SET_HIDE_LOGIN = "Masquer jusqu’au début de la pêche",
+    SET_SCALE = "Échelle",
     IMPROVED = "%s amélioré : %s → %s", REACHED = " — rang %s atteint !",
     TROPHY_CHAT = "TROPHÉE ! %s est au rang maximum !", BANKED = "— 100 points engrangés !",
   },
@@ -520,6 +522,7 @@ local L_ALL = {
     SET_SHOW_ALL = "Alle Fische anzeigen (Zone ignorieren)", SET_HIDE_TROPHY = "Fische mit Trophäenrang ausblenden",
     SET_ONLY_ZONES = "Nur in Midnight-Angelzonen anzeigen", SETTINGS = "Einstellungen", ALL_FISH = "Alle Fische",
     SET_HIDE_LOGIN = "Ausblenden, bis geangelt wird",
+    SET_SCALE = "Skalierung",
     IMPROVED = "%s verbessert: %s → %s", REACHED = " — Rang %s erreicht!",
     TROPHY_CHAT = "TROPHÄE! %s hat den Höchstrang!", BANKED = "— 100 Punkte gesichert!",
   },
@@ -543,6 +546,7 @@ local L_ALL = {
     SET_SHOW_ALL = "Mostrar todos los peces (ignorar zona)", SET_HIDE_TROPHY = "Ocultar peces con rango Trofeo",
     SET_ONLY_ZONES = "Mostrar solo en zonas de pesca de Midnight", SETTINGS = "Ajustes", ALL_FISH = "Todos los peces",
     SET_HIDE_LOGIN = "Ocultar hasta empezar a pescar",
+    SET_SCALE = "Escala",
     IMPROVED = "%s mejorado: %s → %s", REACHED = " — ¡rango %s alcanzado!",
     TROPHY_CHAT = "¡TROFEO! ¡%s está al rango máximo!", BANKED = "— ¡100 puntos asegurados!",
   },
@@ -566,6 +570,7 @@ local L_ALL = {
     SET_SHOW_ALL = "Mostra tutti i pesci (ignora la zona)", SET_HIDE_TROPHY = "Nascondi i pesci di grado Trofeo",
     SET_ONLY_ZONES = "Mostra solo nelle zone di pesca di Midnight", SETTINGS = "Impostazioni", ALL_FISH = "Tutti i pesci",
     SET_HIDE_LOGIN = "Nascondi finché non inizi a pescare",
+    SET_SCALE = "Scala",
     IMPROVED = "%s migliorato: %s → %s", REACHED = " — grado %s raggiunto!",
     TROPHY_CHAT = "TROFEO! %s è al grado massimo!", BANKED = "— 100 punti assicurati!",
   },
@@ -589,6 +594,7 @@ local L_ALL = {
     SET_SHOW_ALL = "Mostrar todos os peixes (ignorar zona)", SET_HIDE_TROPHY = "Ocultar peixes de grau Troféu",
     SET_ONLY_ZONES = "Mostrar apenas em zonas de pesca de Midnight", SETTINGS = "Configurações", ALL_FISH = "Todos os peixes",
     SET_HIDE_LOGIN = "Ocultar até começar a pescar",
+    SET_SCALE = "Escala",
     IMPROVED = "%s melhorado: %s → %s", REACHED = " — grau %s alcançado!",
     TROPHY_CHAT = "TROFÉU! %s está no grau máximo!", BANKED = "— 100 pontos garantidos!",
   },
@@ -612,6 +618,7 @@ local L_ALL = {
     SET_SHOW_ALL = "Показывать всю рыбу (без учета зоны)", SET_HIDE_TROPHY = "Скрывать рыбу уровня «Трофей»",
     SET_ONLY_ZONES = "Показывать только в рыболовных зонах Midnight", SETTINGS = "Настройки", ALL_FISH = "Вся рыба",
     SET_HIDE_LOGIN = "Скрывать, пока вы не начнёте рыбачить",
+    SET_SCALE = "Масштаб",
     IMPROVED = "Улучшено: %s — %s → %s", REACHED = " — достигнут уровень %s!",
     TROPHY_CHAT = "ТРОФЕЙ! %s достигла максимального уровня!", BANKED = "— 100 очков в копилке!",
   },
@@ -635,6 +642,7 @@ local L_ALL = {
     SET_SHOW_ALL = "모든 물고기 표시 (지역 무시)", SET_HIDE_TROPHY = "트로피 등급 물고기 숨기기",
     SET_ONLY_ZONES = "한밤 낚시 지역에서만 표시", SETTINGS = "설정", ALL_FISH = "모든 물고기",
     SET_HIDE_LOGIN = "낚시를 시작할 때까지 숨기기",
+    SET_SCALE = "배율",
     IMPROVED = "%s 향상: %s → %s", REACHED = " — %s 등급 달성!",
     TROPHY_CHAT = "트로피! %s이(가) 최고 등급입니다!", BANKED = "— 100점 확보!",
   },
@@ -658,6 +666,7 @@ local L_ALL = {
     SET_SHOW_ALL = "显示所有鱼（忽略区域）", SET_HIDE_TROPHY = "隐藏奖杯等级的鱼",
     SET_ONLY_ZONES = "仅在至暗之夜钓鱼区域显示", SETTINGS = "设置", ALL_FISH = "所有鱼",
     SET_HIDE_LOGIN = "开始钓鱼前隐藏",
+    SET_SCALE = "缩放",
     IMPROVED = "%s提升：%s → %s", REACHED = "——达到%s等级！",
     TROPHY_CHAT = "奖杯！%s已达最高等级！", BANKED = "——已收入100分！",
   },
@@ -681,6 +690,7 @@ local L_ALL = {
     SET_SHOW_ALL = "顯示所有魚（忽略區域）", SET_HIDE_TROPHY = "隱藏獎盃等級的魚",
     SET_ONLY_ZONES = "僅在至暗之夜釣魚區域顯示", SETTINGS = "設定", ALL_FISH = "所有魚",
     SET_HIDE_LOGIN = "開始釣魚前隱藏",
+    SET_SCALE = "縮放",
     IMPROVED = "%s提升：%s → %s", REACHED = "——達到%s等級！",
     TROPHY_CHAT = "獎盃！%s已達最高等級！", BANKED = "——已收入100分！",
   },
@@ -968,6 +978,7 @@ local function ensureToast()
   if toast then return toast end
   toast = CreateFrame("Frame", "BrinyBestToast", UIParent, "BackdropTemplate")
   toast:SetSize(440, 96)
+  toast:SetScale(((BrinyBestDB.settings and tonumber(BrinyBestDB.settings.scale)) or 100) / 100)
   toast:SetPoint("TOP", 0, -170)
   toast:SetFrameStrata("HIGH")
   toast:SetBackdrop({
@@ -1082,9 +1093,32 @@ frame:SetScript("OnDragStart", function(self)
 end)
 frame:SetScript("OnDragStop", function(self)
   self:StopMovingOrSizing()
+  -- store offsets in screen (UIParent) space so they survive scale changes
   local point, _, relPoint, x, y = self:GetPoint()
-  BrinyBestDB.point = { point, relPoint, x, y }
+  local sc = self:GetScale()
+  BrinyBestDB.point = { point, relPoint, x * sc, y * sc }
 end)
+
+local SCALE_STEPS = { 85, 100, 115, 125, 150 }
+
+local function positionFrame()
+  local sc = frame:GetScale()
+  frame:ClearAllPoints()
+  local p = BrinyBestDB and BrinyBestDB.point
+  if p then
+    frame:SetPoint(p[1], UIParent, p[2], p[3] / sc, p[4] / sc)
+  else
+    frame:SetPoint("RIGHT", UIParent, "RIGHT", -80 / sc, 60 / sc)
+  end
+end
+
+local function applyScale()
+  local pct = tonumber(BrinyBestDB and BrinyBestDB.settings and BrinyBestDB.settings.scale) or 100
+  pct = math.max(50, math.min(200, pct))
+  frame:SetScale(pct / 100)
+  if toast then toast:SetScale(pct / 100) end
+  positionFrame()
+end
 
 local sessionClose = CreateFrame("Button", nil, frame, "UIPanelCloseButton")
 sessionClose:SetPoint("TOPRIGHT", -1, -1)
@@ -1458,6 +1492,13 @@ local function openSettingsMenu(anchor)
       root:CreateCheckbox(L.SET_HIDE_LOGIN,
         function() return s.hideUntilCatch end,
         function() s.hideUntilCatch = not s.hideUntilCatch; update() end)
+      root:CreateDivider()
+      root:CreateTitle(L.SET_SCALE)
+      for _, pct in ipairs(SCALE_STEPS) do
+        root:CreateRadio(pct .. "%",
+          function() return (tonumber(s.scale) or 100) == pct end,
+          function() s.scale = pct; applyScale() end)
+      end
       -- parse language intentionally NOT in the menu: Auto is always correct on a
       -- normal client and a mismatched override looks like a broken addon. The
       -- /bbf lang command remains as a debugging tool.
@@ -1505,12 +1546,7 @@ events:SetScript("OnEvent", function(_, event, arg1, ...)
     if BrinyBestDB.settings.locale then
       setParseLocale(BrinyBestDB.settings.locale)
     end
-    if BrinyBestDB.point then
-      frame:ClearAllPoints()
-      frame:SetPoint(BrinyBestDB.point[1], UIParent, BrinyBestDB.point[2], BrinyBestDB.point[3], BrinyBestDB.point[4])
-    else
-      frame:SetPoint("RIGHT", -80, 60)
-    end
+    applyScale() -- also anchors the frame (saved or default position)
     if untranslatedLocale then
       chat(("your client language (%s) isn't translated yet, so fish data may not parse. Help out at github.com/nerolabs/BrinyBest/issues"):format(untranslatedLocale))
     end
@@ -1571,6 +1607,7 @@ Settings (also via the gear button / right-click on the panel):
 /bbf trophies     - toggle hiding Trophy-rank fish
 /bbf everywhere   - toggle showing the panel outside fishing zones
 /bbf firstcatch   - toggle hiding the panel until you start fishing
+/bbf scale <pct>  - panel/toast scale, 50-200 (default 100)
 /bbf lang <code>  - override parse language (e.g. frFR), "auto" resets
 ]]
 
@@ -1607,8 +1644,7 @@ SlashCmdList.BRINYBEST = function(msg)
     chat("position unlocked — drag to move")
   elseif cmd == "reset" then
     BrinyBestDB.point = nil
-    frame:ClearAllPoints()
-    frame:SetPoint("RIGHT", -80, 60)
+    applyScale()
     chat("position reset")
   elseif cmd == "refresh" then
     requestSpellData()
@@ -1632,6 +1668,15 @@ SlashCmdList.BRINYBEST = function(msg)
     s.hideUntilCatch = not s.hideUntilCatch
     chat(s.hideUntilCatch and "panel hidden until you start fishing" or "panel shows without waiting for fishing")
     update()
+  elseif cmd == "scale" then
+    local pct = tonumber(rest)
+    if pct then
+      BrinyBestDB.settings.scale = math.max(50, math.min(200, math.floor(pct + 0.5)))
+      applyScale()
+      chat(("scale: %d%%"):format(BrinyBestDB.settings.scale))
+    else
+      chat(("scale: %d%% — /bbf scale <50-200> to change"):format(tonumber(BrinyBestDB.settings.scale) or 100))
+    end
   elseif cmd == "lang" then
     if rest == "" or rest == "auto" then
       BrinyBestDB.settings.locale = nil
