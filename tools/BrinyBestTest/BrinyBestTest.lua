@@ -300,6 +300,13 @@ SlashCmdList.BRINYBESTTEST = function(msg)
       for _, c in ipairs(C_Map.GetMapChildrenInfo(m, nil, true) or {}) do
         out[#out + 1] = ("child: %d = %s (mapType %s)"):format(c.mapID, tostring(c.name), tostring(c.mapType))
       end
+      -- siblings: children of the parent map, so one run also shows adjacent zones
+      local mi = C_Map.GetMapInfo(m)
+      if mi and mi.parentMapID and mi.parentMapID > 0 then
+        for _, c in ipairs(C_Map.GetMapChildrenInfo(mi.parentMapID, nil, false) or {}) do
+          out[#out + 1] = ("sibling: %d = %s (mapType %s)"):format(c.mapID, tostring(c.name), tostring(c.mapType))
+        end
+      end
     end
     showCopy(table.concat(out, "\n"))
 

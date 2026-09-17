@@ -705,6 +705,17 @@ local L = setmetatable(L_ALL[GetLocale()] or {}, { __index = L_ALL.enUS })
 -- serves every language.
 local MAP_ISLE, MAP_VAULTS = 2512, 2509
 
+-- Zones that share another zone's fishing loot table but never appear in the
+-- fish descriptions. The Isle of Quel'Danas (three phased map IDs) fishes the
+-- Eversong Woods list; verified in-game 2026-09-17 after a user report.
+-- Keyed by live map ID, value is the map ID whose name the fish lists use.
+local MAP_EVERSONG = 2395
+local ZONE_MAP_ALIASES = {
+  [2424] = MAP_EVERSONG, -- Isle of Quel'Danas
+  [2432] = MAP_EVERSONG, -- Isle of Quel'Danas (phase)
+  [2565] = MAP_EVERSONG, -- Isle of Quel'Danas (phase)
+}
+
 local function mapName(id, fallback)
   local mi = C_Map.GetMapInfo(id)
   return (mi and mi.name) or fallback
@@ -955,6 +966,11 @@ local function currentZoneNames()
     local mi = C_Map.GetMapInfo(mapID)
     if not mi then break end
     if mi.name then names[(normalizeArea(mi.name))] = true end
+    local alias = ZONE_MAP_ALIASES[mapID]
+    if alias then
+      local an = mapName(alias)
+      if an then names[(normalizeArea(an))] = true end
+    end
     mapID = (mi.parentMapID and mi.parentMapID > 0) and mi.parentMapID or nil
     hops = hops + 1
   end
