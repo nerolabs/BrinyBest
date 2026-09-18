@@ -8,4 +8,17 @@
 ## X-Curse-Project-ID: 1653718
 ## X-Wago-ID: v633RZ6b
 
+# Locale data first: BrinyBest.lua reads ns.Locale[...] at load time.
+Locales\enUS.lua
+Locales\deDE.lua
+Locales\esES.lua
+Locales\esMX.lua
+Locales\frFR.lua
+Locales\itIT.lua
+Locales\koKR.lua
+Locales\ptBR.lua
+Locales\ruRU.lua
+Locales\zhCN.lua
+Locales\zhTW.lua
+
 BrinyBest.lua
