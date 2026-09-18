@@ -1,5 +1,5 @@
 -- BrinyBest locale data: Chinese (Simplified)
--- Parse   = the wording Blizzard's Midnight Anglin' journal uses in this language
+-- Parse   = Blizzard's wording in this language (Midnight Anglin' journal and rod tooltips)
 -- Strings = the addon's own UI text; entries still in English are untranslated
 
 local addonName, ns = ...
@@ -19,6 +19,7 @@ ns.Locale.zhCN = {
     rankWords = { ["孔雀鱼"] = "Guppy" },
     openWaterWord = "开阔水域",
     poolWord = "鱼群",
+    venomWord = "毒液",
   },
   Strings = {
     WARBAND = "战团钓鱼得分",
@@ -64,6 +65,12 @@ ns.Locale.zhCN = {
     CMD_ZONES_ALL = "面板在所有区域显示",
     CMD_FIRSTCATCH_ON = "面板在开始钓鱼前隐藏",
     CMD_FIRSTCATCH_OFF = "面板无需等待钓鱼即显示",
+    SET_SHOW_VENOM = "显示盘卷女猎手毒液数量",
+    VENOM_FMT = "%s：%d",
+    CMD_VENOM_ON = "已显示毒液数量",
+    CMD_VENOM_OFF = "已隐藏毒液数量",
+    VENOM_UNEQUIPPED = "盘卷女猎手未装备",
+    VENOM_MISSING = "尚未获得盘卷女猎手",
     CMD_SCALE = "缩放：%d%%",
     CMD_SCALE_HINT = "缩放：%d%%——输入 /bbf scale <50-200> 可修改",
     CMD_LANG_AUTO = "解析语言：自动（%s）",
@@ -84,6 +91,7 @@ ns.Locale.zhCN = {
 /bbf trophies     - 切换是否隐藏奖杯等级的鱼
 /bbf everywhere   - 切换是否在非钓鱼区域显示面板
 /bbf firstcatch   - 切换是否在开始钓鱼前隐藏面板
+/bbf venom       - 切换毒液数量行
 /bbf scale <pct>  - 面板/提示缩放，50-200（默认100）
 /bbf lang <code>  - 覆盖解析语言（如 frFR），“auto”重置
 ]],

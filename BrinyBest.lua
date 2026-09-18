@@ -10,6 +10,8 @@ local addonName, ns = ...
 
 local SCORE_SPELL = 1303630   -- The Briny Best of 'Em (warband score in description)
 local ACHIEVEMENT_ID = 63510  -- The Briny Best (criteria qty = integer score / 2500)
+local VENOM_ROD_ITEM = 244790 -- the fishing rod that banks venom instead of fish
+local FISHING_TOOL_SLOT = 28  -- FISHINGTOOLSLOT: the rod has its own slot since Dragonflight
 
 -- Midnight Fishing journal fish (recipe/spell IDs from the tradeskill dump, 12.1)
 local FISH = {
@@ -590,6 +592,92 @@ local function warbandScore()
   return precise or (critQty and tostring(critQty)) or "?", critQty
 end
 
+-- ---------------------------------------------------------------- venom counter
+-- The Coiled Huntress banks the fish it catches as venom, and the only place that
+-- count is published is its own tooltip. C_TooltipInfo mirrors what the client
+-- would draw for the equipped item, so the number can be read without showing a
+-- GameTooltip. The line reads "<venom word>: N" per language (PARSE.venomWord).
+
+-- Returns the count, or nil plus why it could not be read: "no-rod" (nothing in
+-- the fishing tool slot), "no-api" (no tooltip API in this client), "no-line"
+-- (the rod's tooltip has no venom line at all), "no-value" (the line is there but
+-- carries no number). render() turns "no-rod" into a hint and stays quiet for the
+-- rest, so /dump BrinyBest.ReadVenom() in-game is the quickest way to see which
+-- one a real client reports.
+local function readVenom()
+  if type(GetInventoryItemID) ~= "function" then return nil, "no-api" end
+  local equipped, equippedID = pcall(GetInventoryItemID, "player", FISHING_TOOL_SLOT)
+  if not equipped or equippedID ~= VENOM_ROD_ITEM then return nil, "no-rod" end
+  if not C_TooltipInfo or type(C_TooltipInfo.GetInventoryItem) ~= "function" then
+    return nil, "no-api"
+  end
+  local queried, tooltip = pcall(C_TooltipInfo.GetInventoryItem, "player", FISHING_TOOL_SLOT)
+  if not queried or type(tooltip) ~= "table" or type(tooltip.lines) ~= "table" then
+    return nil, "no-line"
+  end
+  local word = PARSE.venomWord
+  if not word then return nil, "no-line" end
+  -- hyperlinks and color codes are resolved the way the client resolves them, so
+  -- the lines below hold the text an angler would actually see
+  if TooltipUtil and type(TooltipUtil.SurfaceArgs) == "function" then
+    pcall(TooltipUtil.SurfaceArgs, tooltip)
+  end
+
+  -- The count shares its line with the word for it, so flatten the tooltip to one
+  -- readable string per line first and ask the two questions afterwards: does the
+  -- line mention venom, and what is the first number on it.
+  local rows = {}
+  for i = 1, #tooltip.lines do
+    local line = tooltip.lines[i]
+    if type(line) == "table" then
+      if TooltipUtil and type(TooltipUtil.SurfaceArgs) == "function" then
+        pcall(TooltipUtil.SurfaceArgs, line)
+      end
+      -- |cAARRGGBB ... |r is the client's way of coloring text, not text itself
+      local sides = {}
+      for _, side in pairs({ line.leftText, line.rightText }) do
+        if type(side) == "string" and side ~= "" then
+          sides[#sides + 1] = (side:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", ""))
+        end
+      end
+      if #sides > 0 then rows[#rows + 1] = table.concat(sides, " ") end
+    end
+  end
+
+  -- Languages differ on which side of the word the number sits, so the first
+  -- number on the line wins and not just the one after the word. A line that
+  -- mentions venom with no number at all is still worth telling apart, because
+  -- that is the tooltip changing shape rather than the rod being absent.
+  local wanted, met = word:lower(), false
+  for i = 1, #rows do
+    if rows[i]:lower():find(wanted, 1, true) then
+      met = true
+      local digits = rows[i]:match("%d[%d,%.]*")
+      if digits then
+        local count = tonumber((digits:gsub("[^%d]", "")))
+        if count then return count end
+      end
+    end
+  end
+  return nil, met and "no-value" or "no-line"
+end
+
+-- Whether the player has the rod at all, which is what tells "not equipped" and
+-- "don't own it" apart. Bank and reagent bank count: a rod parked in the bank is
+-- still owned, and "not equipped" is the honest hint for it.
+local function rodOwned()
+  local n
+  if C_Item and type(C_Item.GetItemCount) == "function" then
+    local ok, got = pcall(C_Item.GetItemCount, VENOM_ROD_ITEM, true, false, true)
+    if ok then n = got end
+  end
+  if not n and type(GetItemCount) == "function" then
+    local ok, got = pcall(GetItemCount, VENOM_ROD_ITEM, true, false, true)
+    if ok then n = got end
+  end
+  return (n or 0) > 0
+end
+
 -- ---------------------------------------------------------------- zone matching
 
 local function currentZoneNames()
@@ -790,6 +878,14 @@ local scoreLine = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall
 scoreLine:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -2)
 scoreLine:SetJustifyH("LEFT")
 
+-- its own line under the score: the venom count, or why there is no count to
+-- show. render() hides it only when it truly has nothing to say, and the blocks
+-- below shift back up by the height it took
+local venomLine = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+venomLine:SetPoint("TOPLEFT", scoreLine, "BOTTOMLEFT", 0, -2)
+venomLine:SetJustifyH("LEFT")
+venomLine:Hide()
+
 local footer = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
 footer:SetJustifyH("LEFT")
 -- bounded + wrappable: the hidden-Trophy note pushes this line past the frame
@@ -924,12 +1020,46 @@ local function requestSpellData()
 end
 
 local function render(zoneLabel, list, statsList)
+  local s = BrinyBestDB.settings or {}
   title:SetText("BrinyBest — " .. zoneLabel)
   local precise, critQty = warbandScore()
   -- global max computed from fish that actually carry an Anglin' Score line;
   -- fall back to the community-known 2700 while descriptions are still loading
   local globalMax = (pendingLoads == 0 and globalScoreable > 0) and (globalScoreable * 100) or 2700
   scoreLine:SetText((L.WARBAND .. ": |cffffd100%s|r / 2500  |cff9d9d9d" .. L.SCORE_MAX .. "|r"):format(precise, globalMax))
+
+  -- the slot says something whenever the setting is on: the count, or why there
+  -- is none. 0 is a real count, hence the explicit nil test on the read.
+  local venomText
+  if s.showVenom ~= false then
+    local venom, why = readVenom()
+    if venom then
+      venomText = L.VENOM_FMT:format(PARSE.venomWord, venom)
+    elseif why == "no-rod" then
+      -- no rod equipped: either it is sitting in the bags, or it was never
+      -- fished up — same silence, different fix, so say which
+      venomText = ("|cffff8000%s|r"):format(rodOwned() and L.VENOM_UNEQUIPPED or L.VENOM_MISSING)
+    end
+    -- deliberately no else: the rod is equipped but its tooltip gave no usable
+    -- number, and the angler can do nothing about that. /dump BrinyBest.ReadVenom()
+    -- reports which of those it was.
+  end
+  if venomText then
+    venomLine:SetText(venomText)
+    venomLine:Show()
+  else
+    venomLine:Hide()
+  end
+  -- everything below is positioned by absolute offset, so the line it adds has
+  -- to be measured and folded into those offsets. Measured, not assumed: line
+  -- heights differ per language. A hidden frame reports 0, so fall back to the
+  -- font's own line height.
+  local topPad = 0
+  if venomText then
+    local h = venomLine:GetStringHeight()
+    if h <= 0 then h = venomLine:GetLineHeight() end
+    topPad = h + 2
+  end
 
   -- totals come from the unfiltered set so hiding Trophy fish doesn't skew them
   local total, trophies, scoreableCount = 0, 0, 0
@@ -943,7 +1073,7 @@ local function render(zoneLabel, list, statsList)
   for i, info in ipairs(list) do
     local row = getRow(i)
     row:ClearAllPoints()
-    row:SetPoint("TOPLEFT", 10, -40 - (i - 1) * ROW_HEIGHT)
+    row:SetPoint("TOPLEFT", 10, -40 - topPad - (i - 1) * ROW_HEIGHT)
     local nameCol = ("|cff%s%s|r"):format(CAT_HEX[info.cat] or "ffffff", info.name)
     row.left:SetText(nameCol .. sourceSuffix(info))
     if info.rank then
@@ -957,17 +1087,15 @@ local function render(zoneLabel, list, statsList)
   for i = #list + 1, #rows do rows[i]:Hide() end
 
   footer:ClearAllPoints()
-  footer:SetPoint("TOPLEFT", 10, -42 - #list * ROW_HEIGHT)
+  footer:SetPoint("TOPLEFT", 10, -42 - topPad - #list * ROW_HEIGHT)
   if scoreableCount > 0 then
     -- Trophy-rank fish sit at exactly 100.0, so zone max = 100 per scoreable fish
-    local s = BrinyBestDB.settings or {}
     local word = s.showAll and L.TOTAL or L.ZONE
     -- own line: without a break the client folds this mid-word (CJK breaks
     -- anywhere), which reads worse than a clean second line
     local hiddenNote = (#list < scoreableCount and s.hideTrophy) and ("\n|cff9d9d9d%s|r"):format(L.TROPHY_HIDDEN:format(trophies)) or ""
     footer:SetText(("%s: |cffffd100%.1f|r / %d " .. L.PTS .. "   " .. L.TROPHIES .. ": |cffff8000%d|r/%d%s"):format(word, total, scoreableCount * 100, trophies, scoreableCount, hiddenNote))
   else
-    local s = BrinyBestDB.settings or {}
     if s.locale and globalScoreable == 0 and pendingLoads == 0 then
       -- a parse-language override that matches nothing is almost certainly mismatched
       footer:SetText(("|cffff7f3f%s|r"):format(L.NO_PARSE_MISMATCH:format(s.locale)))
@@ -1019,7 +1147,7 @@ local function render(zoneLabel, list, statsList)
   -- height has to be the sum of their measured heights -- the old fixed
   -- 30 + 18 budget assumed a single-line footer and clipped it once the
   -- hidden-Trophy note wrapped
-  frame:SetHeight(42 + #list * ROW_HEIGHT + footer:GetStringHeight() + 8
+  frame:SetHeight(42 + topPad + #list * ROW_HEIGHT + footer:GetStringHeight() + 8
     + zHeader:GetStringHeight() + 3 + zoneNames:GetStringHeight() + 8
     + legend:GetStringHeight() + 8)
 end
@@ -1162,6 +1290,9 @@ local function openSettingsMenu(anchor)
       root:CreateCheckbox(L.SET_HIDE_LOGIN,
         function() return s.hideUntilCatch end,
         function() s.hideUntilCatch = not s.hideUntilCatch; update() end)
+      root:CreateCheckbox(L.SET_SHOW_VENOM,
+        function() return s.showVenom ~= false end,
+        function() s.showVenom = not (s.showVenom ~= false); update() end)
       root:CreateDivider()
       root:CreateTitle(L.SET_SCALE)
       for _, pct in ipairs(SCALE_STEPS) do
@@ -1207,6 +1338,8 @@ events:RegisterEvent("CRITERIA_UPDATE")
 events:RegisterEvent("CHAT_MSG_LOOT")
 pcall(events.RegisterUnitEvent, events, "UNIT_SPELLCAST_SUCCEEDED", "player")
 pcall(events.RegisterEvent, events, "SPELL_TEXT_UPDATE")
+-- equipping or swapping the rod decides whether the venom line exists at all
+pcall(events.RegisterEvent, events, "PLAYER_EQUIPMENT_CHANGED")
 
 events:SetScript("OnEvent", function(_, event, arg1, ...)
   if event == "ADDON_LOADED" and arg1 == "BrinyBest" then
@@ -1237,6 +1370,10 @@ events:SetScript("OnEvent", function(_, event, arg1, ...)
     if FISHING_CASTS[spellID] and not fishedThisSession and #currentList > 0 then
       fishedThisSession = true
       queueUpdate(0.3)
+    elseif FISHING_CASTS[spellID] and (BrinyBestDB.settings or {}).showVenom ~= false then
+      -- venom accrues without an event of its own, so re-read the tooltip on the
+      -- next cast; the panel is already on screen by now
+      queueUpdate(0.5)
     end
   elseif event == "CHAT_MSG_LOOT" then
     -- backup trigger in case a special rod casts an unlisted spell: any journal
@@ -1258,6 +1395,8 @@ events:SetScript("OnEvent", function(_, event, arg1, ...)
         end
       end
     end
+  elseif event == "PLAYER_EQUIPMENT_CHANGED" then
+    if arg1 == FISHING_TOOL_SLOT then queueUpdate(0.3) end
   else -- zone changes
     queueUpdate(0.3)
   end
@@ -1322,6 +1461,11 @@ SlashCmdList.BRINYBEST = function(msg)
     s.hideUntilCatch = not s.hideUntilCatch
     chat(s.hideUntilCatch and L.CMD_FIRSTCATCH_ON or L.CMD_FIRSTCATCH_OFF)
     update()
+  elseif cmd == "venom" then
+    local s = BrinyBestDB.settings
+    s.showVenom = not (s.showVenom ~= false)
+    chat(s.showVenom and L.CMD_VENOM_ON or L.CMD_VENOM_OFF)
+    update()
   elseif cmd == "scale" then
     local pct = tonumber(rest)
     if pct then
@@ -1383,4 +1527,5 @@ BrinyBest = {
   Celebrate = celebrate,
   Update = update,
   RequestSpellData = requestSpellData,
+  ReadVenom = readVenom,
 }

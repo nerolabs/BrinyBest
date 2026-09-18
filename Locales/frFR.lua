@@ -1,5 +1,5 @@
 -- BrinyBest locale data: French
--- Parse   = the wording Blizzard's Midnight Anglin' journal uses in this language
+-- Parse   = Blizzard's wording in this language (Midnight Anglin' journal and rod tooltips)
 -- Strings = the addon's own UI text; entries still in English are untranslated
 
 local addonName, ns = ...
@@ -19,6 +19,7 @@ ns.Locale.frFR = {
     openWaterWord = "étendues d’eau",
     poolWord = "bancs de poissons",
     onlyWord = "uniquement",
+    venomWord = "venin",
   },
   Strings = {
     WARBAND = "Score de pêche du bataillon",
@@ -64,6 +65,12 @@ ns.Locale.frFR = {
     CMD_ZONES_ALL = "panel shows everywhere",
     CMD_FIRSTCATCH_ON = "panel hidden until you start fishing",
     CMD_FIRSTCATCH_OFF = "panel shows without waiting for fishing",
+    SET_SHOW_VENOM = "Show Coiled Huntress venom count",
+    VENOM_FMT = "%s: %d",
+    CMD_VENOM_ON = "venom count shown",
+    CMD_VENOM_OFF = "venom count hidden",
+    VENOM_UNEQUIPPED = "Coiled Huntress not equipped",
+    VENOM_MISSING = "Coiled Huntress not in your bags",
     CMD_SCALE = "scale: %d%%",
     CMD_SCALE_HINT = "scale: %d%% — /bbf scale <50-200> to change",
     CMD_LANG_AUTO = "parse language: auto (%s)",
@@ -84,6 +91,7 @@ Settings (also via the gear button / right-click on the panel):
 /bbf trophies     - toggle hiding Trophy-rank fish
 /bbf everywhere   - toggle showing the panel outside fishing zones
 /bbf firstcatch   - toggle hiding the panel until you start fishing
+/bbf venom       - toggle the venom count line
 /bbf scale <pct>  - panel/toast scale, 50-200 (default 100)
 /bbf lang <code>  - override parse language (e.g. frFR), "auto" resets
 ]],
