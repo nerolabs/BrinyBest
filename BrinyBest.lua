@@ -1159,22 +1159,61 @@ local zHeader = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
 zHeader:SetJustifyH("LEFT")
 zHeader:SetText(L.IMPROVE .. ":")
 
-local zoneNames = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-zoneNames:SetJustifyH("LEFT")
-zoneNames:SetPoint("TOPLEFT", zHeader, "BOTTOMLEFT", 4, -3)
+-- nil = follow the player; a zone key = a manual view pinned by clicking a row
+local viewZoneKey
+local update
 
--- three right-anchored columns so score, percent, and points-left align across
--- rows regardless of digit count (a single right-justified string wiggles)
-local function statColumn(rightOffset)
-  local fs = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-  fs:SetJustifyH("RIGHT")
-  fs:SetPoint("TOP", zoneNames, "TOP", 0, 0)
-  fs:SetPoint("RIGHT", frame, "RIGHT", rightOffset, 0)
-  return fs
+-- one button per zone so the list can be clicked: click a zone to view its
+-- fish, click it again to snap back to the player. The three numbers keep
+-- their own right-anchored columns so they align across rows regardless of
+-- digit count (a single right-justified string wiggles)
+local zoneList = CreateFrame("Frame", nil, frame)
+zoneList:SetPoint("TOPLEFT", zHeader, "BOTTOMLEFT", 0, -3)
+zoneList:SetWidth(FRAME_WIDTH - 20)
+zoneList:SetHeight(1)
+
+local ZONE_ROW_H = 12
+do
+  -- measured, not assumed: line heights differ per language
+  local probe = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+  probe:SetText("X")
+  probe:Hide()
+  local h = probe:GetLineHeight()
+  if h and h > 0 then ZONE_ROW_H = h end
 end
-local zoneScore = statColumn(-104)
-local zonePct = statColumn(-68)
-local zoneLeft = statColumn(-12)
+
+local zoneRows = {}
+local function getZoneRow(i)
+  if zoneRows[i] then return zoneRows[i] end
+  local row = CreateFrame("Button", nil, zoneList)
+  row:SetSize(FRAME_WIDTH - 20, ZONE_ROW_H)
+  row.bg = row:CreateTexture(nil, "HIGHLIGHT")
+  row.bg:SetAllPoints()
+  row.bg:SetColorTexture(1, 1, 1, 0.08)
+  row.name = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+  row.name:SetPoint("LEFT", 4, 0)
+  row.name:SetJustifyH("LEFT")
+  row.name:SetWidth(200)
+  row.name:SetWordWrap(false)
+  local function cell(rightOffset)
+    local fs = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    fs:SetJustifyH("RIGHT")
+    fs:SetPoint("RIGHT", row, "RIGHT", rightOffset, 0)
+    return fs
+  end
+  -- the old columns sat at frame RIGHT -104/-68/-12; the row starts 10px in,
+  -- so the same screen positions are these offsets off the row's own edge
+  row.score = cell(-94)
+  row.pct = cell(-58)
+  row.left = cell(-2)
+  row:RegisterForClicks("LeftButtonUp")
+  row:SetScript("OnClick", function(self)
+    viewZoneKey = (viewZoneKey == self.zoneKey) and nil or self.zoneKey
+    update()
+  end)
+  zoneRows[i] = row
+  return row
+end
 
 local legend = frame:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
 legend:SetJustifyH("LEFT")
@@ -1341,17 +1380,23 @@ local function render(zoneLabel, list, statsList)
     if mx ~= my then return mx > my end
     return x.name < y.name
   end)
-  local names, scores, pcts, lefts = {}, {}, {}, {}
   local cur = (normalizeArea(zoneLabel or ""))
-  for _, z in ipairs(zlist) do
+  for i, z in ipairs(zlist) do
+    local row = getZoneRow(i)
+    row:ClearAllPoints()
+    row:SetPoint("TOPLEFT", 0, -(i - 1) * ZONE_ROW_H)
     local n = z.name
     if z.key == cur then n = "|cffffd100" .. n .. "|r" end
-    names[#names + 1] = n
+    row.name:SetText(n)
+    row.score:SetText(("%.0f / %d"):format(z.total, z.max))
     local pct = z.max > 0 and (z.total / z.max * 100) or 0
-    scores[#scores + 1] = ("%.0f / %d"):format(z.total, z.max)
-    pcts[#pcts + 1] = ("|cff%s%.0f%%|r"):format(pctColor(pct, targetPct(globalMax)), pct)
-    lefts[#lefts + 1] = L.LEFT_FMT:format(z.max - z.total)
+    row.pct:SetText(("|cff%s%.0f%%|r"):format(pctColor(pct, targetPct(globalMax)), pct))
+    row.left:SetText(L.LEFT_FMT:format(z.max - z.total))
+    row.zoneKey = z.key
+    row:Show()
   end
+  for i = #zlist + 1, #zoneRows do zoneRows[i]:Hide() end
+
   zHeader:ClearAllPoints()
   zHeader:SetPoint("TOPLEFT", footer, "BOTTOMLEFT", 0, -8)
   if #zlist > 0 then
@@ -1359,24 +1404,26 @@ local function render(zoneLabel, list, statsList)
   else
     zHeader:SetText("")
   end
-  zoneNames:SetText(table.concat(names, "\n"))
-  zoneScore:SetText(table.concat(scores, "\n"))
-  zonePct:SetText(table.concat(pcts, "\n"))
-  zoneLeft:SetText(table.concat(lefts, "\n"))
+  zoneList:SetHeight(math.max(1, #zlist * ZONE_ROW_H))
 
   legend:ClearAllPoints()
-  legend:SetPoint("TOPLEFT", zoneNames, "BOTTOMLEFT", -4, -8)
+  legend:SetPoint("TOPLEFT", zoneList, "BOTTOMLEFT", 0, -8)
 
-  frame:SetHeight(40 + #list * ROW_HEIGHT + 30 + 18 + zoneNames:GetStringHeight() + legend:GetStringHeight() + 8)
+  frame:SetHeight(40 + #list * ROW_HEIGHT + 30 + 18 + zoneList:GetHeight() + legend:GetStringHeight() + 8)
 end
 
-local function update()
-  local zones = currentZoneNames()
+update = function()
+  -- the player's own zones drive the visibility gates; a pinned view only
+  -- changes which fish the list shows
+  local playerZones = currentZoneNames()
+  local viewZones = playerZones
+  if viewZoneKey then viewZones = { [viewZoneKey] = true } end
   wipe(currentList)
   wipe(zoneAgg)
   pendingLoads = 0
   pendingValues = 0
   globalScoreable = 0
+  local playerInFishZone = false
   local allList = {}
 
   for _, fdef in ipairs(FISH) do
@@ -1391,7 +1438,7 @@ local function update()
       if info.valuesPending then
         pendingValues = pendingValues + 1
       end
-      local inZone = false
+      local inView = false
       for _, area in ipairs(info.areas) do
         local key, disp = normalizeArea(area)
         if info.scoreable then
@@ -1399,10 +1446,11 @@ local function update()
           agg.total = agg.total + info.score
           agg.count = agg.count + 1
           zoneAgg[key] = agg
+          if playerZones[key] then playerInFishZone = true end
         end
-        if not inZone and info.scoreable and zones[key] then
+        if not inView and info.scoreable and viewZones[key] then
           currentList[#currentList + 1] = info
-          inZone = true
+          inView = true
         end
       end
     else
@@ -1427,7 +1475,11 @@ local function update()
 
   local s = BrinyBestDB.settings or {}
   local displayList, label
-  if s.showAll then
+  if viewZoneKey then
+    displayList = currentList
+    local agg = zoneAgg[viewZoneKey]
+    label = (agg and agg.display) or viewZoneKey
+  elseif s.showAll then
     displayList, label = allList, L.ALL_FISH
   else
     displayList, label = currentList, GetZoneText() or "?"
@@ -1449,7 +1501,6 @@ local function update()
     frame:Hide()
     return
   end
-  local inFishZone = #currentList > 0
   if not frame.manualShow then
     -- opt-in: stay hidden until fishing starts this session
     if s.hideUntilCatch and not fishedThisSession then
@@ -1457,11 +1508,11 @@ local function update()
       return
     end
     -- default on: the panel only appears where Midnight fish are recorded
-    if s.onlyAchievementZones ~= false and not inFishZone then
+    if s.onlyAchievementZones ~= false and not playerInFishZone then
       frame:Hide()
       return
     end
-    if not s.showAll and not inFishZone then
+    if not s.showAll and not playerInFishZone then
       frame:Hide()
       return
     end
@@ -1605,6 +1656,8 @@ events:SetScript("OnEvent", function(_, event, arg1, ...)
       end
     end
   else -- zone changes
+    -- moving ends a manual zone view: the panel is about where the angler is
+    viewZoneKey = nil
     queueUpdate(0.3)
   end
 end)
